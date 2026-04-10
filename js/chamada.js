@@ -21,9 +21,14 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+const MESES = [
+  'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
 function formatDateBR(dateStr) {
   const [y, m, d] = dateStr.split('-');
-  return `${d}/${m}/${y}`;
+  return `${parseInt(d)} de ${MESES[parseInt(m) - 1]} de ${y}`;
 }
 
 async function loadChamada() {
@@ -69,8 +74,12 @@ function renderChamada(pessoas) {
   const totalPeople = Object.keys(chamadaState).length;
 
   let html = `
-    <div class="date-picker">
-      <input type="date" class="date-input" id="chamada-date" value="${currentDate}">
+    <div class="date-picker" style="position:relative;">
+      <button class="date-input" id="chamada-date-btn" style="width:100%;cursor:pointer;font-weight:600;">
+        ${formatDateBR(currentDate)}
+      </button>
+      <input type="date" class="date-input" id="chamada-date" value="${currentDate}"
+        style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;">
     </div>
 
     <div class="group-filter">

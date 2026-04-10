@@ -23,6 +23,16 @@ function threeMonthsAgoStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+const MESES = [
+  'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+];
+
+function formatDateShortBR(dateStr) {
+  const [y, m, d] = dateStr.split('-');
+  return `${parseInt(d)} ${MESES[parseInt(m) - 1]} ${y}`;
+}
+
 async function loadRanking() {
   if (!dateFrom) dateFrom = threeMonthsAgoStr();
   if (!dateTo) dateTo = todayStr();
@@ -62,13 +72,17 @@ async function loadRanking() {
 function renderRanking(rankingData, totalChamadas) {
   let html = `
     <div class="date-picker">
-      <div style="flex:1;">
+      <div style="flex:1;position:relative;">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-align:center;">De</div>
-        <input type="date" class="date-input" id="ranking-from" value="${dateFrom}">
+        <button class="date-input" style="width:100%;cursor:pointer;font-weight:600;">${formatDateShortBR(dateFrom)}</button>
+        <input type="date" id="ranking-from" value="${dateFrom}"
+          style="position:absolute;bottom:0;left:0;width:100%;height:48px;opacity:0;cursor:pointer;">
       </div>
-      <div style="flex:1;">
+      <div style="flex:1;position:relative;">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-align:center;">Ate</div>
-        <input type="date" class="date-input" id="ranking-to" value="${dateTo}">
+        <button class="date-input" style="width:100%;cursor:pointer;font-weight:600;">${formatDateShortBR(dateTo)}</button>
+        <input type="date" id="ranking-to" value="${dateTo}"
+          style="position:absolute;bottom:0;left:0;width:100%;height:48px;opacity:0;cursor:pointer;">
       </div>
     </div>
 

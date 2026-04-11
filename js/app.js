@@ -1,5 +1,5 @@
 // Navigation
-const pages = ['cadastro', 'chamada', 'historico', 'ranking'];
+const pages = ['cadastro', 'chamada', 'historico', 'ranking', 'estoque'];
 let currentPage = 'cadastro';
 
 function navigateTo(page) {
@@ -37,6 +37,7 @@ async function init() {
   await import('./chamada.js');
   await import('./historico.js');
   await import('./ranking.js');
+  await import('./estoque.js');
 
   // Start sync engine
   const { initSync } = await import('./sync.js');

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'presenca-v5';
+const CACHE_NAME = 'presenca-v6';
 const ASSETS = [
   '/',
   '/index.html',
@@ -11,6 +11,7 @@ const ASSETS = [
   '/js/chamada.js',
   '/js/historico.js',
   '/js/ranking.js',
+  '/js/estoque.js',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',

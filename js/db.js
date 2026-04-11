@@ -1,5 +1,5 @@
 const DB_NAME = 'presenca-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 let db = null;
 
 export function initDB() {
@@ -41,6 +41,13 @@ export function initDB() {
         const store = db.createObjectStore('cestas', { keyPath: 'id' });
         store.createIndex('pessoa_id', 'pessoa_id', { unique: false });
         store.createIndex('data', 'data', { unique: false });
+        store.createIndex('ativo', 'ativo', { unique: false });
+      }
+
+      // itens store (v3)
+      if (!db.objectStoreNames.contains('itens')) {
+        const store = db.createObjectStore('itens', { keyPath: 'id' });
+        store.createIndex('categoria', 'categoria', { unique: false });
         store.createIndex('ativo', 'ativo', { unique: false });
       }
     };
@@ -238,6 +245,50 @@ export function deleteCesta(id) {
     cesta.atualizado_em = new Date().toISOString();
     return put('cestas', cesta).then(() => {
       addToSyncQueue('cestas', 'upsert', cesta);
+    });
+  });
+}
+
+// === Itens (estoque) ===
+export function getItens() {
+  return getAll('itens').then(list => list.filter(i => i.ativo !== false));
+}
+
+export function getItem(id) {
+  return getByKey('itens', id);
+}
+
+export function saveItem(item) {
+  if (!item.id) item.id = crypto.randomUUID();
+  if (!item.criado_em) item.criado_em = new Date().toISOString();
+  item.atualizado_em = new Date().toISOString();
+  if (item.ativo === undefined) item.ativo = true;
+  item.quantidade = Math.max(0, parseInt(item.quantidade, 10) || 0);
+  return put('itens', item).then(() => {
+    addToSyncQueue('itens', 'upsert', item);
+    return item;
+  });
+}
+
+export function updateItemQuantidade(id, novaQtd) {
+  return getByKey('itens', id).then(item => {
+    if (!item) return null;
+    item.quantidade = Math.max(0, parseInt(novaQtd, 10) || 0);
+    item.atualizado_em = new Date().toISOString();
+    return put('itens', item).then(() => {
+      addToSyncQueue('itens', 'upsert', item);
+      return item;
+    });
+  });
+}
+
+export function deleteItem(id) {
+  return getByKey('itens', id).then(item => {
+    if (!item) return;
+    item.ativo = false;
+    item.atualizado_em = new Date().toISOString();
+    return put('itens', item).then(() => {
+      addToSyncQueue('itens', 'upsert', item);
     });
   });
 }

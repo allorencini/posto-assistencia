@@ -1,4 +1,4 @@
-import { getPessoas, getChamadas, getAllPresencas } from './db.js';
+import { getPessoas, getChamadas, getAllPresencas, getCestas, saveCesta } from './db.js';
 
 const content = document.getElementById('ranking-content');
 let currentFilter = 'todos';
@@ -40,6 +40,7 @@ async function loadRanking() {
   const pessoas = await getPessoas();
   const chamadas = await getChamadas();
   const allPresencas = await getAllPresencas();
+  const cestas = await getCestas();
 
   // Filter chamadas by date range
   const chamadasInRange = chamadas.filter(c => c.data >= dateFrom && c.data <= dateTo);
@@ -54,17 +55,32 @@ async function loadRanking() {
     presencaCount[p.pessoa_id] = (presencaCount[p.pessoa_id] || 0) + 1;
   }
 
+  // Aggregate cestas per person: total count + dates set
+  const hoje = todayStr();
+  const cestasInfo = {};
+  for (const c of cestas) {
+    const info = cestasInfo[c.pessoa_id] || { total: 0, datas: new Set() };
+    info.total += 1;
+    info.datas.add(c.data);
+    cestasInfo[c.pessoa_id] = info;
+  }
+
   // Filter pessoas
   const filtered = currentFilter === 'todos'
     ? pessoas
     : pessoas.filter(p => p.grupo === currentFilter);
 
   // Build ranking data
-  const rankingData = filtered.map(p => ({
-    ...p,
-    presencas: presencaCount[p.id] || 0,
-    pct: totalChamadas > 0 ? Math.round(((presencaCount[p.id] || 0) / totalChamadas) * 100) : 0,
-  }));
+  const rankingData = filtered.map(p => {
+    const info = cestasInfo[p.id] || { total: 0, datas: new Set() };
+    return {
+      ...p,
+      presencas: presencaCount[p.id] || 0,
+      pct: totalChamadas > 0 ? Math.round(((presencaCount[p.id] || 0) / totalChamadas) * 100) : 0,
+      cestasTotal: info.total,
+      recebeuHoje: info.datas.has(hoje),
+    };
+  });
 
   renderRanking(rankingData, totalChamadas);
 }
@@ -136,15 +152,27 @@ function renderRanking(rankingData, totalChamadas) {
 
 function renderRankingRow(position, pessoa, totalChamadas) {
   const colorClass = pessoa.pct >= 80 ? 'high' : pessoa.pct >= 50 ? 'mid' : 'low';
+  const cestaBadge = pessoa.cestasTotal > 0
+    ? `<div class="cesta-badge" title="${pessoa.cestasTotal} cesta${pessoa.cestasTotal !== 1 ? 's' : ''} recebida${pessoa.cestasTotal !== 1 ? 's' : ''}">🧺 ${pessoa.cestasTotal}</div>`
+    : '';
+  const btnCesta = pessoa.recebeuHoje
+    ? `<button class="btn-cesta done" disabled>Entregue hoje</button>`
+    : `<button class="btn-cesta" data-pessoa="${pessoa.id}">Entregar cesta</button>`;
   return `
     <div class="ranking-row">
-      <div style="display:flex;align-items:center;gap:14px;">
-        <div class="ranking-pos">${position}</div>
-        <div class="ranking-name">${escapeHtml(pessoa.nome)}</div>
+      <div class="ranking-row-top">
+        <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1;">
+          <div class="ranking-pos">${position}</div>
+          <div class="ranking-name">${escapeHtml(pessoa.nome)}</div>
+        </div>
+        <div class="ranking-stats">
+          <div class="ranking-count ${colorClass}">${pessoa.presencas}/${totalChamadas}</div>
+          <div class="ranking-pct">${pessoa.pct}%</div>
+        </div>
       </div>
-      <div class="ranking-stats">
-        <div class="ranking-count ${colorClass}">${pessoa.presencas}/${totalChamadas}</div>
-        <div class="ranking-pct">${pessoa.pct}%</div>
+      <div class="ranking-row-bottom">
+        ${cestaBadge}
+        ${btnCesta}
       </div>
     </div>
   `;
@@ -165,6 +193,18 @@ function attachRankingEvents() {
     pill.addEventListener('click', () => {
       currentFilter = pill.dataset.filter;
       loadRanking();
+    });
+  });
+
+  content.querySelectorAll('.btn-cesta[data-pessoa]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const pessoaId = btn.dataset.pessoa;
+      btn.disabled = true;
+      btn.textContent = 'Entregando...';
+      await saveCesta({ pessoa_id: pessoaId, data: todayStr() });
+      btn.textContent = 'Entregue!';
+      btn.classList.add('done');
+      setTimeout(() => loadRanking(), 600);
     });
   });
 }

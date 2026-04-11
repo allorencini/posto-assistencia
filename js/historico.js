@@ -1,10 +1,12 @@
 import {
-  getPessoas, getChamadas, getPresencasByChamada, getPresencasByPessoa
+  getPessoas, getChamadas, getPresencasByChamada, getPresencasByPessoa,
+  getCestas, deleteCesta
 } from './db.js';
 
 const content = document.getElementById('historico-content');
-let currentView = 'por-data'; // 'por-data' or 'por-pessoa'
+let currentView = 'por-data'; // 'por-data' | 'por-pessoa' | 'cestas'
 let currentFilter = 'todos';
+let expandedPessoa = null;
 
 const GRUPOS = [
   { value: 'crianca', label: 'Crianca' },
@@ -22,9 +24,92 @@ function formatDateBR(dateStr) {
 async function loadHistorico() {
   if (currentView === 'por-data') {
     await renderPorData();
-  } else {
+  } else if (currentView === 'por-pessoa') {
     await renderPorPessoa();
+  } else {
+    await renderCestas();
   }
+}
+
+function formatDateBRShort(dateStr) {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+async function renderCestas() {
+  const pessoas = await getPessoas();
+  const cestas = await getCestas();
+
+  let html = renderTabs();
+  html += renderFilterPills();
+
+  const pessoaMap = {};
+  for (const p of pessoas) pessoaMap[p.id] = p;
+
+  // Group cestas by pessoa
+  const grouped = {};
+  for (const c of cestas) {
+    const pessoa = pessoaMap[c.pessoa_id];
+    if (!pessoa) continue;
+    if (currentFilter !== 'todos' && pessoa.grupo !== currentFilter) continue;
+    if (!grouped[c.pessoa_id]) {
+      grouped[c.pessoa_id] = { pessoa, items: [] };
+    }
+    grouped[c.pessoa_id].items.push(c);
+  }
+
+  const list = Object.values(grouped);
+
+  if (list.length === 0) {
+    html += `
+      <div class="empty-state">
+        <div class="icon">🧺</div>
+        <p>Nenhuma cesta entregue ainda.</p>
+      </div>
+    `;
+    content.innerHTML = html;
+    attachHistoricoEvents();
+    return;
+  }
+
+  // Sort items per person desc, then sort list by most recent delivery desc
+  for (const g of list) {
+    g.items.sort((a, b) => b.data.localeCompare(a.data));
+  }
+  list.sort((a, b) => b.items[0].data.localeCompare(a.items[0].data));
+
+  for (const g of list) {
+    const total = g.items.length;
+    const ultima = formatDateBRShort(g.items[0].data);
+    const isExpanded = expandedPessoa === g.pessoa.id;
+
+    html += `
+      <div class="card cesta-card" data-pessoa="${g.pessoa.id}">
+        <div class="cesta-header" data-toggle="${g.pessoa.id}">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:17px;font-weight:500;">${escapeHtml(g.pessoa.nome)}</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px;">Ultima: ${ultima}</div>
+          </div>
+          <div class="cesta-badge" style="margin-right:8px;">🧺 ${total}</div>
+          <div style="color:var(--text-muted);font-size:18px;">${isExpanded ? '▴' : '▾'}</div>
+        </div>
+        ${isExpanded ? `
+          <div class="cesta-dates">
+            ${g.items.map(c => `
+              <div class="cesta-date-row">
+                <span>${formatDateBRShort(c.data)}</span>
+                <button class="cesta-remove" data-cesta-id="${c.id}" title="Remover">✕</button>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  content.innerHTML = html;
+  attachHistoricoEvents();
 }
 
 async function renderPorData() {
@@ -152,6 +237,7 @@ function renderTabs() {
     <div class="tab-bar">
       <button class="tab-btn ${currentView === 'por-data' ? 'active' : ''}" data-view="por-data">Por Data</button>
       <button class="tab-btn ${currentView === 'por-pessoa' ? 'active' : ''}" data-view="por-pessoa">Por Pessoa</button>
+      <button class="tab-btn ${currentView === 'cestas' ? 'active' : ''}" data-view="cestas">Cestas</button>
     </div>
   `;
 }
@@ -171,6 +257,7 @@ function attachHistoricoEvents() {
   content.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       currentView = btn.dataset.view;
+      expandedPessoa = null;
       loadHistorico();
     });
   });
@@ -178,6 +265,23 @@ function attachHistoricoEvents() {
   content.querySelectorAll('.filter-pill').forEach(pill => {
     pill.addEventListener('click', () => {
       currentFilter = pill.dataset.filter;
+      loadHistorico();
+    });
+  });
+
+  content.querySelectorAll('.cesta-header[data-toggle]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.toggle;
+      expandedPessoa = expandedPessoa === id ? null : id;
+      loadHistorico();
+    });
+  });
+
+  content.querySelectorAll('.cesta-remove[data-cesta-id]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm('Remover esta entrega de cesta?')) return;
+      await deleteCesta(btn.dataset.cestaId);
       loadHistorico();
     });
   });

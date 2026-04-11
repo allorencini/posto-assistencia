@@ -143,9 +143,15 @@ select.form-input { appearance: none; }
 
 /* === Ranking === */
 .ranking-row {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; flex-direction: column; gap: 10px;
   padding: 14px 16px; background: var(--bg-secondary);
   border-radius: var(--radius); margin-bottom: 6px;
+}
+.ranking-row-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.ranking-row-bottom {
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px;
 }
 .ranking-pos {
   color: var(--accent); font-weight: bold; font-size: 18px;
@@ -207,6 +213,44 @@ select.form-input { appearance: none; }
   cursor: pointer; min-height: var(--touch-min);
 }
 .tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* === Cestas === */
+.cesta-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(251, 191, 36, 0.15); color: var(--yellow);
+  padding: 4px 10px; border-radius: 12px;
+  font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+.btn-cesta {
+  background: var(--green); color: #000;
+  border: none; border-radius: 8px;
+  padding: 10px 14px; font-size: 14px; font-weight: bold;
+  cursor: pointer; min-height: 40px; white-space: nowrap;
+}
+.btn-cesta.done {
+  background: #334155; color: var(--text-muted); cursor: default;
+}
+.cesta-card { padding: 0; overflow: hidden; }
+.cesta-header {
+  display: flex; align-items: center;
+  padding: 14px 16px; cursor: pointer; gap: 8px;
+}
+.cesta-dates {
+  border-top: 1px solid #1a4a7a;
+  padding: 8px 16px 12px;
+}
+.cesta-date-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; font-size: 15px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.cesta-date-row:last-child { border-bottom: none; }
+.cesta-remove {
+  background: transparent; color: var(--red);
+  border: 1px solid var(--red); border-radius: 6px;
+  width: 36px; height: 36px; font-size: 14px; font-weight: bold;
+  cursor: pointer;
+}
 
 /* === Empty State === */
 .empty-state {

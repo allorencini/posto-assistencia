@@ -30,11 +30,23 @@ CREATE TABLE presencas (
   UNIQUE(chamada_id, pessoa_id)
 );
 
+-- Table: cestas (entregas de cestas basicas)
+CREATE TABLE cestas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pessoa_id UUID NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  data DATE NOT NULL,
+  ativo BOOLEAN NOT NULL DEFAULT TRUE,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Indexes for common queries
 CREATE INDEX idx_presencas_chamada ON presencas(chamada_id);
 CREATE INDEX idx_presencas_pessoa ON presencas(pessoa_id);
 CREATE INDEX idx_chamadas_data ON chamadas(data);
 CREATE INDEX idx_pessoas_grupo ON pessoas(grupo);
+CREATE INDEX idx_cestas_pessoa ON cestas(pessoa_id);
+CREATE INDEX idx_cestas_data ON cestas(data);
 
 -- Auto-update atualizado_em
 CREATE OR REPLACE FUNCTION update_atualizado_em()
@@ -53,11 +65,32 @@ CREATE TRIGGER presencas_atualizado
   BEFORE UPDATE ON presencas
   FOR EACH ROW EXECUTE FUNCTION update_atualizado_em();
 
+CREATE TRIGGER cestas_atualizado
+  BEFORE UPDATE ON cestas
+  FOR EACH ROW EXECUTE FUNCTION update_atualizado_em();
+
 -- RLS: Allow anonymous access (no login requirement)
 ALTER TABLE pessoas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chamadas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE presencas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cestas ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow all access to pessoas" ON pessoas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access to chamadas" ON chamadas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access to presencas" ON presencas FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to cestas" ON cestas FOR ALL USING (true) WITH CHECK (true);
+
+-- === Migration: apenas a tabela cestas (para quem ja tem o schema antigo) ===
+-- CREATE TABLE cestas (
+--   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--   pessoa_id UUID NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+--   data DATE NOT NULL,
+--   ativo BOOLEAN NOT NULL DEFAULT TRUE,
+--   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+--   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- );
+-- CREATE INDEX idx_cestas_pessoa ON cestas(pessoa_id);
+-- CREATE INDEX idx_cestas_data ON cestas(data);
+-- CREATE TRIGGER cestas_atualizado BEFORE UPDATE ON cestas FOR EACH ROW EXECUTE FUNCTION update_atualizado_em();
+-- ALTER TABLE cestas ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Allow all access to cestas" ON cestas FOR ALL USING (true) WITH CHECK (true);

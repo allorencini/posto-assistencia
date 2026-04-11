@@ -1,5 +1,5 @@
 const DB_NAME = 'presenca-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 let db = null;
 
 export function initDB() {
@@ -34,6 +34,14 @@ export function initDB() {
       if (!db.objectStoreNames.contains('sync_queue')) {
         const store = db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true });
         store.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+
+      // cestas store (v2)
+      if (!db.objectStoreNames.contains('cestas')) {
+        const store = db.createObjectStore('cestas', { keyPath: 'id' });
+        store.createIndex('pessoa_id', 'pessoa_id', { unique: false });
+        store.createIndex('data', 'data', { unique: false });
+        store.createIndex('ativo', 'ativo', { unique: false });
       }
     };
 
@@ -196,6 +204,41 @@ export function savePresencasBatch(presencas) {
 
     transaction.oncomplete = () => resolve(presencas);
     transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+// === Cestas ===
+export function getCestas() {
+  return getAll('cestas').then(list => list.filter(c => c.ativo !== false));
+}
+
+export function getAllCestas() {
+  return getAll('cestas');
+}
+
+export function getCestasByPessoa(pessoaId) {
+  return getAllByIndex('cestas', 'pessoa_id', pessoaId).then(list => list.filter(c => c.ativo !== false));
+}
+
+export function saveCesta(cesta) {
+  if (!cesta.id) cesta.id = crypto.randomUUID();
+  if (!cesta.criado_em) cesta.criado_em = new Date().toISOString();
+  cesta.atualizado_em = new Date().toISOString();
+  if (cesta.ativo === undefined) cesta.ativo = true;
+  return put('cestas', cesta).then(() => {
+    addToSyncQueue('cestas', 'upsert', cesta);
+    return cesta;
+  });
+}
+
+export function deleteCesta(id) {
+  return getByKey('cestas', id).then(cesta => {
+    if (!cesta) return;
+    cesta.ativo = false;
+    cesta.atualizado_em = new Date().toISOString();
+    return put('cestas', cesta).then(() => {
+      addToSyncQueue('cestas', 'upsert', cesta);
+    });
   });
 }
 

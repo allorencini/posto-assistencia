@@ -325,9 +325,12 @@ export function bulkPut(storeName, items) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
-    for (const item of items) {
-      store.put(item);
-    }
+    const clearReq = store.clear();
+    clearReq.onsuccess = () => {
+      for (const item of items) {
+        store.put(item);
+      }
+    };
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
   });

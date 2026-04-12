@@ -8,10 +8,10 @@ let currentSubtab = 'pessoas'; // 'pessoas' | 'itens'
 let currentFilter = 'todos';
 
 const GRUPOS = [
-  { value: 'crianca', label: 'Crianca' },
-  { value: 'jovem', label: 'Jovem' },
-  { value: 'adulto', label: 'Adulto' },
-  { value: 'gravida', label: 'Gravida' },
+  { value: 'evangelizacao', label: 'Evangelização', plural: 'Evangelização' },
+  { value: 'mocidade', label: 'Mocidade', plural: 'Mocidade' },
+  { value: 'adulto', label: 'Adulto', plural: 'Adultos' },
+  { value: 'gestante', label: 'Gestante', plural: 'Gestantes' },
 ];
 
 const CATEGORIAS = [
@@ -57,7 +57,7 @@ function renderPessoas(pessoas, filter) {
     <div class="group-filter">
       <button class="filter-pill ${filter === 'todos' ? 'active' : ''}" data-filter="todos">Todos</button>
       ${GRUPOS.map(g => `
-        <button class="filter-pill ${filter === g.value ? 'active' : ''}" data-filter="${g.value}">${g.label}s</button>
+        <button class="filter-pill ${filter === g.value ? 'active' : ''}" data-filter="${g.value}">${g.plural}</button>
       `).join('')}
     </div>
   `;
@@ -69,7 +69,7 @@ function renderPessoas(pessoas, filter) {
     if (list.length === 0) continue;
 
     totalCount += list.length;
-    html += `<div class="group-label">${g.label}s (${list.length})</div>`;
+    html += `<div class="group-label">${g.plural} (${list.length})</div>`;
     for (const p of list) {
       html += `
         <div class="card" style="display:flex;align-items:center;justify-content:space-between;">

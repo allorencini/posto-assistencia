@@ -5,7 +5,7 @@
 CREATE TABLE pessoas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome TEXT NOT NULL,
-  grupo TEXT NOT NULL CHECK (grupo IN ('crianca', 'jovem', 'adulto', 'gravida')),
+  grupo TEXT NOT NULL CHECK (grupo IN ('evangelizacao', 'mocidade', 'adulto', 'gestante')),
   telefone TEXT,
   ativo BOOLEAN NOT NULL DEFAULT TRUE,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),

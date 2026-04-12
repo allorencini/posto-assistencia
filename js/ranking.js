@@ -6,10 +6,10 @@ let dateFrom = '';
 let dateTo = '';
 
 const GRUPOS = [
-  { value: 'crianca', label: 'Crianca' },
-  { value: 'jovem', label: 'Jovem' },
-  { value: 'adulto', label: 'Adulto' },
-  { value: 'gravida', label: 'Gravida' },
+  { value: 'evangelizacao', label: 'Evangelização', plural: 'Evangelização' },
+  { value: 'mocidade', label: 'Mocidade', plural: 'Mocidade' },
+  { value: 'adulto', label: 'Adulto', plural: 'Adultos' },
+  { value: 'gestante', label: 'Gestante', plural: 'Gestantes' },
 ];
 
 function todayStr() {
@@ -105,7 +105,7 @@ function renderRanking(rankingData, totalChamadas) {
     <div class="group-filter">
       <button class="filter-pill ${currentFilter === 'todos' ? 'active' : ''}" data-filter="todos">Todos</button>
       ${GRUPOS.map(g => `
-        <button class="filter-pill ${currentFilter === g.value ? 'active' : ''}" data-filter="${g.value}">${g.label}s</button>
+        <button class="filter-pill ${currentFilter === g.value ? 'active' : ''}" data-filter="${g.value}">${g.plural}</button>
       `).join('')}
     </div>
 
@@ -133,7 +133,7 @@ function renderRanking(rankingData, totalChamadas) {
 
       if (groupData.length === 0) continue;
 
-      html += `<div class="group-label">${g.label}s</div>`;
+      html += `<div class="group-label">${g.plural}</div>`;
       groupData.forEach((p, i) => {
         html += renderRankingRow(i + 1, p, totalChamadas);
       });

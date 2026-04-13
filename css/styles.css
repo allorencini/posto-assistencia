@@ -199,6 +199,7 @@ select.form-input { appearance: none; }
   background: var(--bg-secondary); border-radius: 16px 16px 0 0;
   padding: 24px 20px max(20px, env(safe-area-inset-bottom));
   width: 100%; max-width: 500px;
+  max-height: 90vh; overflow-y: auto;
 }
 .modal h2 { font-size: 18px; margin-bottom: 16px; }
 .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
@@ -280,6 +281,35 @@ select.form-input { appearance: none; }
   -webkit-appearance: none; margin: 0;
 }
 .qtd-input:focus { outline: none; border-color: var(--accent); }
+
+/* === Form Sections & Checkboxes === */
+.form-section-label {
+  font-size: 13px; font-weight: bold; color: var(--yellow);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin: 16px 0 8px; padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.checkbox-label {
+  display: flex !important; align-items: center; gap: 10px;
+  font-size: 15px !important; color: var(--text-primary) !important;
+  cursor: pointer;
+}
+.checkbox-label input[type="checkbox"] {
+  width: 22px; height: 22px; accent-color: var(--accent);
+}
+.radio-group {
+  display: flex; gap: 16px; margin-top: 4px;
+}
+.radio-label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; color: var(--text-primary); cursor: pointer;
+}
+.radio-label input[type="radio"] {
+  width: 20px; height: 20px; accent-color: var(--accent);
+}
+textarea.form-input {
+  resize: vertical; min-height: 60px;
+}
 
 /* === Empty State === */
 .empty-state {

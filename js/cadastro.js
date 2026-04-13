@@ -72,10 +72,18 @@ function renderPessoas(pessoas, filter) {
     totalCount += list.length;
     html += `<div class="group-label">${g.plural} (${list.length})</div>`;
     for (const p of list) {
+      const badges = [];
+      if (p.rua) badges.push('<span class="pessoa-badge" title="Endereco">📍</span>');
+      if (p.visitada && p.apta_cesta === true) badges.push('<span class="pessoa-badge apta" title="Apta cesta">✅</span>');
+      else if (p.visitada && p.apta_cesta === false) badges.push('<span class="pessoa-badge nao-apta" title="Nao apta">❌</span>');
+      else if (!p.visitada) badges.push('<span class="pessoa-badge pendente" title="Aguardando visita">⏳</span>');
       html += `
         <div class="card" style="display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <div style="font-size:17px;font-weight:500;">${escapeHtml(p.nome)}</div>
+          <div style="min-width:0;flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:17px;font-weight:500;">${escapeHtml(p.nome)}</span>
+              <span style="display:flex;gap:2px;font-size:14px;">${badges.join('')}</span>
+            </div>
             ${p.telefone ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px;">${escapeHtml(p.telefone)}</div>` : ''}
           </div>
           <div style="display:flex;gap:8px;">
@@ -231,6 +239,55 @@ function showPessoaForm(editId = null) {
         <label>Telefone</label>
         <input type="tel" class="form-input" id="form-telefone" placeholder="(opcional)">
       </div>
+
+      <div class="form-section-label">Endereco</div>
+      <div class="form-group">
+        <label>Rua</label>
+        <input type="text" class="form-input" id="form-rua" placeholder="(opcional)">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <div class="form-group" style="flex:1;">
+          <label>Numero</label>
+          <input type="text" class="form-input" id="form-numero" placeholder="N">
+        </div>
+        <div class="form-group" style="flex:2;">
+          <label>Complemento</label>
+          <input type="text" class="form-input" id="form-complemento" placeholder="Apto, bloco...">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <div class="form-group" style="flex:2;">
+          <label>Bairro</label>
+          <input type="text" class="form-input" id="form-bairro" placeholder="(opcional)">
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>CEP</label>
+          <input type="text" class="form-input" id="form-cep" placeholder="00000-000" maxlength="9">
+        </div>
+      </div>
+
+      <div class="form-section-label">Visita Assistente Social</div>
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="form-visitada"> Visitada pela assistente social
+        </label>
+      </div>
+      <div id="visita-fields" style="display:none;">
+        <div class="form-group">
+          <label>Apta para cesta?</label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="apta_cesta" value="sim"> Sim</label>
+            <label class="radio-label"><input type="radio" name="apta_cesta" value="nao"> Nao</label>
+          </div>
+        </div>
+        <div id="obs-field" style="display:none;">
+          <div class="form-group">
+            <label>Observacao</label>
+            <textarea class="form-input" id="form-visita-obs" rows="2" placeholder="Motivo..."></textarea>
+          </div>
+        </div>
+      </div>
+
       <div class="modal-actions">
         <button class="btn btn-secondary" id="form-cancel">CANCELAR</button>
         <button class="btn btn-primary" id="form-save">SALVAR</button>
@@ -240,12 +297,51 @@ function showPessoaForm(editId = null) {
 
   document.body.appendChild(overlay);
 
+  // CEP mask
+  const cepInput = document.getElementById('form-cep');
+  cepInput.addEventListener('input', () => {
+    let v = cepInput.value.replace(/\D/g, '').slice(0, 8);
+    if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
+    cepInput.value = v;
+  });
+
+  // Visitada toggle
+  const visitadaCheck = document.getElementById('form-visitada');
+  const visitaFields = document.getElementById('visita-fields');
+  visitadaCheck.addEventListener('change', () => {
+    visitaFields.style.display = visitadaCheck.checked ? '' : 'none';
+  });
+
+  // Apta cesta radio toggle
+  const obsField = document.getElementById('obs-field');
+  overlay.querySelectorAll('input[name="apta_cesta"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      obsField.style.display = radio.value === 'nao' && radio.checked ? '' : 'none';
+    });
+  });
+
   if (editId) {
     getPessoa(editId).then(p => {
       if (!p) return;
       document.getElementById('form-nome').value = p.nome;
       document.getElementById('form-grupo').value = p.grupo;
       document.getElementById('form-telefone').value = p.telefone || '';
+      document.getElementById('form-rua').value = p.rua || '';
+      document.getElementById('form-numero').value = p.numero || '';
+      document.getElementById('form-complemento').value = p.complemento || '';
+      document.getElementById('form-bairro').value = p.bairro || '';
+      document.getElementById('form-cep').value = p.cep || '';
+      if (p.visitada) {
+        visitadaCheck.checked = true;
+        visitaFields.style.display = '';
+        if (p.apta_cesta === true) {
+          overlay.querySelector('input[name="apta_cesta"][value="sim"]').checked = true;
+        } else if (p.apta_cesta === false) {
+          overlay.querySelector('input[name="apta_cesta"][value="nao"]').checked = true;
+          obsField.style.display = '';
+        }
+        document.getElementById('form-visita-obs').value = p.visita_obs || '';
+      }
     });
   }
 
@@ -267,6 +363,17 @@ function showPessoaForm(editId = null) {
     pessoa.nome = nome;
     pessoa.grupo = grupo;
     pessoa.telefone = telefone || null;
+    pessoa.rua = document.getElementById('form-rua').value.trim() || null;
+    pessoa.numero = document.getElementById('form-numero').value.trim() || null;
+    pessoa.complemento = document.getElementById('form-complemento').value.trim() || null;
+    pessoa.bairro = document.getElementById('form-bairro').value.trim() || null;
+    pessoa.cep = document.getElementById('form-cep').value.trim() || null;
+    pessoa.visitada = visitadaCheck.checked;
+    const aptaRadio = overlay.querySelector('input[name="apta_cesta"]:checked');
+    pessoa.apta_cesta = pessoa.visitada && aptaRadio ? aptaRadio.value === 'sim' : null;
+    pessoa.visita_obs = pessoa.visitada && pessoa.apta_cesta === false
+      ? document.getElementById('form-visita-obs').value.trim() || null
+      : null;
 
     await savePessoa(pessoa);
     overlay.remove();

@@ -15,7 +15,8 @@ const GRUPOS = [
 ];
 
 const CATEGORIAS = [
-  { value: 'alimento', label: 'Alimentos' },
+  { value: 'alimento-doacao', label: 'Alimento (Doação)' },
+  { value: 'alimento-interno', label: 'Alimento (Uso Interno)' },
   { value: 'limpeza', label: 'Limpeza' },
 ];
 
@@ -102,7 +103,7 @@ function renderPessoas(pessoas, filter) {
 // === Itens ===
 
 function renderItens(itens) {
-  const grouped = { alimento: [], limpeza: [] };
+  const grouped = { 'alimento-doacao': [], 'alimento-interno': [], limpeza: [] };
   for (const i of itens) {
     if (grouped[i.categoria]) grouped[i.categoria].push(i);
   }

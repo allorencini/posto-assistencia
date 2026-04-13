@@ -44,7 +44,7 @@ CREATE TABLE cestas (
 CREATE TABLE itens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome TEXT NOT NULL,
-  categoria TEXT NOT NULL CHECK (categoria IN ('alimento', 'limpeza')),
+  categoria TEXT NOT NULL CHECK (categoria IN ('alimento-doacao', 'alimento-interno', 'limpeza')),
   quantidade INTEGER NOT NULL DEFAULT 0 CHECK (quantidade >= 0),
   ativo BOOLEAN NOT NULL DEFAULT TRUE,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -102,7 +102,7 @@ CREATE POLICY "Allow all access to itens" ON itens FOR ALL USING (true) WITH CHE
 -- CREATE TABLE itens (
 --   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 --   nome TEXT NOT NULL,
---   categoria TEXT NOT NULL CHECK (categoria IN ('alimento', 'limpeza')),
+--   categoria TEXT NOT NULL CHECK (categoria IN ('alimento-doacao', 'alimento-interno', 'limpeza')),
 --   quantidade INTEGER NOT NULL DEFAULT 0 CHECK (quantidade >= 0),
 --   ativo BOOLEAN NOT NULL DEFAULT TRUE,
 --   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),

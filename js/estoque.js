@@ -1,10 +1,11 @@
 import { getItens, updateItemQuantidade } from './db.js';
 
 const content = document.getElementById('estoque-content');
-let currentFilter = 'todos'; // 'todos' | 'alimento' | 'limpeza'
+let currentFilter = 'todos'; // 'todos' | 'alimento-doacao' | 'alimento-interno' | 'limpeza'
 
 const CATEGORIAS = [
-  { value: 'alimento', label: 'Alimentos' },
+  { value: 'alimento-doacao', label: 'Alimento (Doação)' },
+  { value: 'alimento-interno', label: 'Alimento (Uso Interno)' },
   { value: 'limpeza', label: 'Limpeza' },
 ];
 
@@ -18,7 +19,7 @@ function render(itens) {
     ? itens
     : itens.filter(i => i.categoria === currentFilter);
 
-  const grouped = { alimento: [], limpeza: [] };
+  const grouped = { 'alimento-doacao': [], 'alimento-interno': [], limpeza: [] };
   for (const i of filtered) {
     if (grouped[i.categoria]) grouped[i.categoria].push(i);
   }

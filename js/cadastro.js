@@ -377,6 +377,7 @@ function showPessoaForm(editId = null) {
 
     await savePessoa(pessoa);
     overlay.remove();
+    window.showToast(editId ? 'Pessoa atualizada!' : 'Pessoa cadastrada!');
     loadPage();
   });
 }
@@ -403,6 +404,7 @@ function confirmDeletePessoa(id) {
   document.getElementById('del-confirm').addEventListener('click', async () => {
     await deletePessoa(id);
     overlay.remove();
+    window.showToast('Pessoa removida.');
     loadPage();
   });
 }
@@ -459,6 +461,7 @@ function showItemForm(editId = null) {
 
     await saveItem(item);
     overlay.remove();
+    window.showToast(editId ? 'Item atualizado!' : 'Item cadastrado!');
     loadPage();
   });
 }
@@ -485,6 +488,7 @@ function confirmDeleteItem(id) {
   document.getElementById('item-del-confirm').addEventListener('click', async () => {
     await deleteItem(id);
     overlay.remove();
+    window.showToast('Item removido.');
     loadPage();
   });
 }

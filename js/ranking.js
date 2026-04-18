@@ -204,6 +204,7 @@ function attachRankingEvents() {
       await saveCesta({ pessoa_id: pessoaId, data: todayStr() });
       btn.textContent = 'Entregue!';
       btn.classList.add('done');
+      window.showToast('Cesta registrada!');
       setTimeout(() => loadRanking(), 600);
     });
   });

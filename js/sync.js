@@ -31,9 +31,12 @@ async function pushChanges() {
       const { table, data } = item;
 
       // Upsert to Supabase (on conflict update)
+      const onConflict = table === 'presencas' ? 'chamada_id,pessoa_id'
+        : table === 'chamadas' ? 'data'
+        : 'id';
       const { error } = await sb
         .from(table)
-        .upsert(data, { onConflict: table === 'presencas' ? 'chamada_id,pessoa_id' : 'id' });
+        .upsert(data, { onConflict });
 
       if (error) {
         console.warn(`Sync error for ${table}:`, error.message);

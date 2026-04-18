@@ -311,6 +311,19 @@ textarea.form-input {
   resize: vertical; min-height: 60px;
 }
 
+/* === Toast === */
+.toast {
+  position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%) translateY(16px);
+  background: #1e293b; color: white; padding: 12px 20px;
+  border-radius: 24px; font-size: 15px; font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4); z-index: 500;
+  opacity: 0; transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap; max-width: 90vw; pointer-events: none;
+  border-left: 4px solid var(--green);
+}
+.toast.toast-error { border-left-color: var(--red); }
+.toast.toast-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
 /* === Empty State === */
 .empty-state {
   text-align: center; padding: 40px 20px; color: var(--text-muted);

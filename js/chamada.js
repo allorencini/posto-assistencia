@@ -6,6 +6,7 @@ import {
 const content = document.getElementById('chamada-content');
 let currentDate = todayStr();
 let currentFilter = 'todos';
+let currentSearch = '';
 let chamadaState = {}; // { pessoaId: { presente: bool, presencaId: uuid } }
 let currentChamada = null;
 
@@ -57,9 +58,10 @@ async function loadChamada() {
 }
 
 function renderChamada(pessoas) {
-  const filtered = currentFilter === 'todos'
-    ? pessoas
-    : pessoas.filter(p => p.grupo === currentFilter);
+  const searchTerm = currentSearch.toLowerCase();
+  const filtered = pessoas
+    .filter(p => currentFilter === 'todos' || p.grupo === currentFilter)
+    .filter(p => !searchTerm || p.nome.toLowerCase().includes(searchTerm));
 
   const grouped = {};
   for (const g of GRUPOS) grouped[g.value] = [];
@@ -88,6 +90,9 @@ function renderChamada(pessoas) {
         <button class="filter-pill ${currentFilter === g.value ? 'active' : ''}" data-filter="${g.value}">${g.plural}</button>
       `).join('')}
     </div>
+
+    <input type="text" class="search-input" id="search-chamada"
+      placeholder="Buscar por nome..." value="${escapeHtml(currentSearch)}">
 
     <div class="counter">Presentes: <strong>${totalPresent}</strong> / ${totalPeople} cadastrados</div>
   `;
@@ -139,7 +144,15 @@ function attachChamadaEvents() {
   // Date change
   document.getElementById('chamada-date')?.addEventListener('change', (e) => {
     currentDate = e.target.value;
+    currentSearch = '';
     loadChamada();
+  });
+
+  // Search
+  document.getElementById('search-chamada')?.addEventListener('input', async (e) => {
+    currentSearch = e.target.value;
+    const pessoas = await getPessoas();
+    renderChamada(pessoas);
   });
 
   // Filter pills
@@ -175,8 +188,11 @@ function attachChamadaEvents() {
 }
 
 async function salvarChamada() {
-  // Create or reuse chamada for this date
-  if (!currentChamada) {
+  // Always verify DB to prevent duplicate chamadas for same date
+  const existing = await getChamadaByData(currentDate);
+  if (existing) {
+    currentChamada = existing;
+  } else if (!currentChamada) {
     currentChamada = await saveChamada({ data: currentDate });
   }
 
@@ -195,19 +211,7 @@ async function salvarChamada() {
     chamadaState[p.pessoa_id].id = p.id;
   }
 
-  // Visual feedback
-  const btn = document.getElementById('btn-salvar-chamada');
-  if (btn) {
-    const originalText = btn.textContent;
-    btn.textContent = 'SALVO!';
-    btn.style.background = 'var(--green)';
-    btn.style.color = '#000';
-    setTimeout(() => {
-      btn.textContent = originalText;
-      btn.style.background = '';
-      btn.style.color = '';
-    }, 2000);
-  }
+  window.showToast('Chamada salva!');
 }
 
 function escapeHtml(str) {

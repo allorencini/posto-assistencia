@@ -1,5 +1,5 @@
 const DB_NAME = 'presenca-db';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 let db = null;
 
 export function initDB() {
@@ -8,12 +8,19 @@ export function initDB() {
 
     request.onupgradeneeded = (e) => {
       const db = e.target.result;
+      const transaction = e.target.transaction;
 
       // pessoas store
       if (!db.objectStoreNames.contains('pessoas')) {
         const store = db.createObjectStore('pessoas', { keyPath: 'id' });
         store.createIndex('grupo', 'grupo', { unique: false });
         store.createIndex('ativo', 'ativo', { unique: false });
+        store.createIndex('familia_id', 'familia_id', { unique: false });
+      } else {
+        const pessoasStore = transaction.objectStore('pessoas');
+        if (!pessoasStore.indexNames.contains('familia_id')) {
+          pessoasStore.createIndex('familia_id', 'familia_id', { unique: false });
+        }
       }
 
       // chamadas store
@@ -48,6 +55,13 @@ export function initDB() {
       if (!db.objectStoreNames.contains('itens')) {
         const store = db.createObjectStore('itens', { keyPath: 'id' });
         store.createIndex('categoria', 'categoria', { unique: false });
+        store.createIndex('ativo', 'ativo', { unique: false });
+      }
+
+      // familias store (v4)
+      if (!db.objectStoreNames.contains('familias')) {
+        const store = db.createObjectStore('familias', { keyPath: 'id' });
+        store.createIndex('nome', 'nome', { unique: false });
         store.createIndex('ativo', 'ativo', { unique: false });
       }
     };
@@ -291,6 +305,41 @@ export function deleteItem(id) {
       addToSyncQueue('itens', 'upsert', item);
     });
   });
+}
+
+// === Familias ===
+export function getFamilias() {
+  return getAll('familias').then(list => list.filter(f => f.ativo !== false));
+}
+
+export function getFamilia(id) {
+  return getByKey('familias', id);
+}
+
+export function saveFamilia(familia) {
+  if (!familia.id) familia.id = crypto.randomUUID();
+  if (!familia.criado_em) familia.criado_em = new Date().toISOString();
+  familia.atualizado_em = new Date().toISOString();
+  if (familia.ativo === undefined) familia.ativo = true;
+  return put('familias', familia).then(() => {
+    addToSyncQueue('familias', 'upsert', familia);
+    return familia;
+  });
+}
+
+export function deleteFamilia(id) {
+  return getFamilia(id).then(familia => {
+    if (!familia) return;
+    familia.ativo = false;
+    familia.atualizado_em = new Date().toISOString();
+    return put('familias', familia).then(() => {
+      addToSyncQueue('familias', 'upsert', familia);
+    });
+  });
+}
+
+export function getPessoasByFamilia(familiaId) {
+  return getAllByIndex('pessoas', 'familia_id', familiaId);
 }
 
 // === Sync Queue ===

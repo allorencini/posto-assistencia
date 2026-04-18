@@ -1,10 +1,11 @@
 import {
-  getPessoas, savePessoa, deletePessoa, getPessoa,
-  getItens, getItem, saveItem, deleteItem
+  getPessoas, savePessoa, deletePessoa, getPessoa, getAllPessoas,
+  getItens, getItem, saveItem, deleteItem,
+  getFamilias, getFamilia, saveFamilia, deleteFamilia
 } from './db.js';
 
 const content = document.getElementById('cadastro-content');
-let currentSubtab = 'pessoas'; // 'pessoas' | 'itens'
+let currentSubtab = 'pessoas'; // 'pessoas' | 'itens' | 'familias'
 let currentFilter = 'todos';
 
 const GRUPOS = [
@@ -25,6 +26,7 @@ function renderSubtabs() {
     <div class="tab-bar">
       <button class="tab-btn ${currentSubtab === 'pessoas' ? 'active' : ''}" data-subtab="pessoas">Pessoas</button>
       <button class="tab-btn ${currentSubtab === 'itens' ? 'active' : ''}" data-subtab="itens">Itens</button>
+      <button class="tab-btn ${currentSubtab === 'familias' ? 'active' : ''}" data-subtab="familias">Famílias</button>
     </div>
   `;
 }
@@ -165,6 +167,200 @@ function renderItens(itens) {
   attachEvents();
 }
 
+// === Familias ===
+
+function renderFamilias(familias, pessoas) {
+  let html = renderSubtabs();
+  html += `
+    <button class="btn btn-primary" id="btn-add-familia" style="margin-bottom:16px;">
+      + CADASTRAR FAMÍLIA
+    </button>
+  `;
+
+  if (familias.length === 0) {
+    html += `
+      <div class="empty-state">
+        <div class="icon">👨‍👩‍👧</div>
+        <p>Nenhuma família cadastrada.</p>
+      </div>
+    `;
+    content.innerHTML = html;
+    attachEvents();
+    return;
+  }
+
+  for (const familia of familias) {
+    const membros = pessoas.filter(p => p.familia_id === familia.id);
+    const nomes = membros.map(p => p.nome).join(', ') || 'Sem membros';
+    html += `
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="min-width:0;flex:1;">
+          <div style="font-size:17px;font-weight:500;">👨‍👩‍👧 ${escapeHtml(familia.nome)}</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:2px;">${escapeHtml(nomes)}</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-icon" data-edit-familia="${familia.id}" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✏️</button>
+          <button class="btn-icon" data-delete-familia="${familia.id}" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">🗑️</button>
+        </div>
+      </div>
+    `;
+  }
+
+  content.innerHTML = html;
+  attachEvents();
+}
+
+function showFamiliaForm(editId = null) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h2>${editId ? 'Editar' : 'Cadastrar'} Família</h2>
+      <div class="form-group">
+        <label>Nome da família *</label>
+        <input type="text" class="form-input" id="form-familia-nome" placeholder="Ex: Silva, Oliveira..." autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Adicionar membros</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" class="form-input" id="familia-busca" placeholder="Buscar pessoa..." style="flex:1;">
+          <button class="btn btn-primary" id="familia-add-membro" style="width:auto;padding:0 16px;">+</button>
+        </div>
+        <div id="familia-busca-resultados" style="background:#111827;border:1px solid #333;border-radius:8px;margin-top:4px;display:none;max-height:140px;overflow-y:auto;"></div>
+      </div>
+      <div class="form-group">
+        <label id="familia-membros-label">Membros (0)</label>
+        <div id="familia-membros-lista"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="familia-cancel">CANCELAR</button>
+        <button class="btn btn-primary" id="familia-save">SALVAR</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  let membros = [];
+
+  function renderMembros() {
+    const lista = document.getElementById('familia-membros-lista');
+    document.getElementById('familia-membros-label').textContent = `Membros (${membros.length})`;
+    if (membros.length === 0) {
+      lista.innerHTML = '<div style="color:var(--text-muted);font-size:14px;padding:8px 0;">Nenhum membro adicionado.</div>';
+      return;
+    }
+    lista.innerHTML = membros.map(m => `
+      <div style="background:#111827;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:14px;">${escapeHtml(m.nome)}</span>
+        <button data-remove-membro="${m.id}" style="background:transparent;color:var(--red);border:none;font-size:18px;cursor:pointer;padding:4px;">✕</button>
+      </div>
+    `).join('');
+    lista.querySelectorAll('[data-remove-membro]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        membros = membros.filter(m => m.id !== btn.dataset.removeMembro);
+        renderMembros();
+      });
+    });
+  }
+  renderMembros();
+
+  const buscaInput = document.getElementById('familia-busca');
+  const resultados = document.getElementById('familia-busca-resultados');
+
+  buscaInput.addEventListener('input', async () => {
+    const term = buscaInput.value.toLowerCase().trim();
+    if (!term) { resultados.style.display = 'none'; return; }
+    const todas = await getPessoas();
+    const matches = todas.filter(p =>
+      p.nome.toLowerCase().includes(term) && !membros.find(m => m.id === p.id)
+    ).slice(0, 6);
+    if (matches.length === 0) { resultados.style.display = 'none'; return; }
+    resultados.style.display = '';
+    resultados.innerHTML = matches.map(p => `
+      <div data-pick-pessoa="${p.id}" data-pick-nome="${escapeHtml(p.nome)}"
+        style="padding:10px 14px;cursor:pointer;color:#fff;font-size:14px;border-bottom:1px solid #222;">
+        ${escapeHtml(p.nome)}
+      </div>
+    `).join('');
+    resultados.querySelectorAll('[data-pick-pessoa]').forEach(item => {
+      item.addEventListener('click', () => {
+        membros.push({ id: item.dataset.pickPessoa, nome: item.dataset.pickNome });
+        renderMembros();
+        buscaInput.value = '';
+        resultados.style.display = 'none';
+      });
+    });
+  });
+
+  if (editId) {
+    Promise.all([getFamilia(editId), getPessoas()]).then(([familia, todas]) => {
+      if (!familia) return;
+      document.getElementById('form-familia-nome').value = familia.nome;
+      membros = todas.filter(p => p.familia_id === editId).map(p => ({ id: p.id, nome: p.nome }));
+      renderMembros();
+    });
+  }
+
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.getElementById('familia-cancel').addEventListener('click', () => overlay.remove());
+
+  document.getElementById('familia-save').addEventListener('click', async () => {
+    const nome = document.getElementById('form-familia-nome').value.trim();
+    if (!nome) {
+      document.getElementById('form-familia-nome').style.borderColor = 'var(--red)';
+      return;
+    }
+
+    const familia = editId ? await getFamilia(editId) : {};
+    familia.nome = nome;
+    const saved = await saveFamilia(familia);
+
+    const todasPessoas = await getAllPessoas();
+    const membroIds = new Set(membros.map(m => m.id));
+
+    for (const p of todasPessoas) {
+      const eraMembroAntes = p.familia_id === saved.id;
+      const eMembroAgora = membroIds.has(p.id);
+      if (eraMembroAntes && !eMembroAgora) {
+        p.familia_id = null;
+        await savePessoa(p);
+      } else if (!eraMembroAntes && eMembroAgora) {
+        p.familia_id = saved.id;
+        await savePessoa(p);
+      }
+    }
+
+    overlay.remove();
+    window.showToast(editId ? 'Família atualizada!' : 'Família cadastrada!');
+    loadPage();
+  });
+}
+
+function confirmDeleteFamilia(id) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h2>Confirmar exclusao</h2>
+      <p style="color:var(--text-secondary);margin-bottom:8px;">Excluir esta família? Os membros não serão apagados.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="familia-del-cancel">CANCELAR</button>
+        <button class="btn btn-primary" id="familia-del-confirm" style="background:var(--red);">EXCLUIR</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.getElementById('familia-del-cancel').addEventListener('click', () => overlay.remove());
+  document.getElementById('familia-del-confirm').addEventListener('click', async () => {
+    await deleteFamilia(id);
+    overlay.remove();
+    window.showToast('Família removida.');
+    loadPage();
+  });
+}
+
 function attachEvents() {
   // Subtab switch
   content.querySelectorAll('.tab-btn[data-subtab]').forEach(btn => {
@@ -216,6 +412,15 @@ function attachEvents() {
   });
   content.querySelectorAll('[data-delete-item]').forEach(btn => {
     btn.addEventListener('click', () => confirmDeleteItem(btn.dataset.deleteItem));
+  });
+
+  // Famílias
+  document.getElementById('btn-add-familia')?.addEventListener('click', () => showFamiliaForm());
+  content.querySelectorAll('[data-edit-familia]').forEach(btn => {
+    btn.addEventListener('click', () => showFamiliaForm(btn.dataset.editFamilia));
+  });
+  content.querySelectorAll('[data-delete-familia]').forEach(btn => {
+    btn.addEventListener('click', () => confirmDeleteFamilia(btn.dataset.deleteFamilia));
   });
 }
 
@@ -501,11 +706,14 @@ function escapeHtml(str) {
 
 async function loadPage() {
   if (currentSubtab === 'pessoas') {
-    const pessoas = await getPessoas();
-    renderPessoas(pessoas, currentFilter);
-  } else {
+    const [pessoas, familias] = await Promise.all([getPessoas(), getFamilias()]);
+    renderPessoas(pessoas, currentFilter, familias);
+  } else if (currentSubtab === 'itens') {
     const itens = await getItens();
     renderItens(itens);
+  } else {
+    const [familias, pessoas] = await Promise.all([getFamilias(), getPessoas()]);
+    renderFamilias(familias, pessoas);
   }
 }
 

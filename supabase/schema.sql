@@ -6,6 +6,7 @@ CREATE TABLE pessoas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome TEXT NOT NULL,
   grupo TEXT NOT NULL CHECK (grupo IN ('evangelizacao', 'mocidade', 'adulto', 'gestante')),
+  familia_id UUID REFERENCES familias(id) ON DELETE SET NULL,
   telefone TEXT,
   rua TEXT,
   numero TEXT,
@@ -43,6 +44,15 @@ CREATE TABLE cestas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pessoa_id UUID NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
   data DATE NOT NULL,
+  ativo BOOLEAN NOT NULL DEFAULT TRUE,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Table: familias
+CREATE TABLE familias (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome TEXT NOT NULL,
   ativo BOOLEAN NOT NULL DEFAULT TRUE,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()

@@ -54,7 +54,7 @@ async function pushChanges() {
 async function pullChanges() {
   const sb = await getSupabase();
 
-  for (const table of ['pessoas', 'chamadas', 'presencas', 'cestas', 'itens']) {
+  for (const table of ['familias', 'pessoas', 'chamadas', 'presencas', 'cestas', 'itens']) {
     try {
       const { data, error } = await sb.from(table).select('*');
       if (error) {

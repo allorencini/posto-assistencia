@@ -1,4 +1,4 @@
-import { getPessoas, getChamadas, getAllPresencas, getCestas, saveCesta } from './db.js';
+import { getPessoas, getChamadas, getAllPresencas, getCestas, saveCesta, getFamilias } from './db.js';
 
 const content = document.getElementById('ranking-content');
 let currentFilter = 'todos';
@@ -37,26 +37,23 @@ async function loadRanking() {
   if (!dateFrom) dateFrom = threeMonthsAgoStr();
   if (!dateTo) dateTo = todayStr();
 
-  const pessoas = await getPessoas();
-  const chamadas = await getChamadas();
-  const allPresencas = await getAllPresencas();
-  const cestas = await getCestas();
+  const [pessoas, chamadas, allPresencas, cestas, familias] = await Promise.all([
+    getPessoas(), getChamadas(), getAllPresencas(), getCestas(), getFamilias()
+  ]);
 
-  // Filter chamadas by date range
   const chamadasInRange = chamadas.filter(c => c.data >= dateFrom && c.data <= dateTo);
   const chamadaIds = new Set(chamadasInRange.map(c => c.id));
   const totalChamadas = chamadasInRange.length;
+  const hoje = todayStr();
 
-  // Count presences per person in range
+  // Presença individual
   const presencaCount = {};
   for (const p of allPresencas) {
-    if (!chamadaIds.has(p.chamada_id)) continue;
-    if (!p.presente) continue;
+    if (!chamadaIds.has(p.chamada_id) || !p.presente) continue;
     presencaCount[p.pessoa_id] = (presencaCount[p.pessoa_id] || 0) + 1;
   }
 
-  // Aggregate cestas per person: total count + dates set
-  const hoje = todayStr();
+  // Cestas individuais
   const cestasInfo = {};
   for (const c of cestas) {
     const info = cestasInfo[c.pessoa_id] || { total: 0, datas: new Set() };
@@ -65,27 +62,76 @@ async function loadRanking() {
     cestasInfo[c.pessoa_id] = info;
   }
 
-  // Filter pessoas
-  const filtered = currentFilter === 'todos'
-    ? pessoas
-    : pessoas.filter(p => p.grupo === currentFilter);
+  // Membros por família
+  const familyMembers = {};
+  for (const p of pessoas) {
+    if (!p.familia_id) continue;
+    if (!familyMembers[p.familia_id]) familyMembers[p.familia_id] = [];
+    familyMembers[p.familia_id].push(p);
+  }
 
-  // Build ranking data
-  const rankingData = filtered.map(p => {
+  const entries = [];
+
+  // Entradas de família
+  for (const familia of familias) {
+    const members = familyMembers[familia.id];
+    if (!members || members.length === 0) continue;
+
+    if (currentFilter !== 'todos') {
+      const hasMatch = members.some(m => m.grupo === currentFilter);
+      if (!hasMatch) continue;
+    }
+
+    const memberIds = new Set(members.map(m => m.id));
+    let famPresencas = 0;
+    for (const chamadaId of chamadaIds) {
+      const anyPresent = allPresencas.some(p =>
+        p.chamada_id === chamadaId && memberIds.has(p.pessoa_id) && p.presente
+      );
+      if (anyPresent) famPresencas++;
+    }
+
+    const famDatas = new Set();
+    for (const c of cestas) {
+      if (memberIds.has(c.pessoa_id)) famDatas.add(c.data);
+    }
+
+    entries.push({
+      type: 'familia',
+      id: familia.id,
+      nome: familia.nome,
+      members,
+      presencas: famPresencas,
+      pct: totalChamadas > 0 ? Math.round((famPresencas / totalChamadas) * 100) : 0,
+      cestasTotal: famDatas.size,
+      recebeuHoje: famDatas.has(hoje),
+    });
+  }
+
+  // Entradas individuais (sem família)
+  const pessoasSemFamilia = pessoas.filter(p => !p.familia_id);
+  const filteredIndividuais = currentFilter === 'todos'
+    ? pessoasSemFamilia
+    : pessoasSemFamilia.filter(p => p.grupo === currentFilter);
+
+  for (const p of filteredIndividuais) {
     const info = cestasInfo[p.id] || { total: 0, datas: new Set() };
-    return {
-      ...p,
+    entries.push({
+      type: 'individual',
+      id: p.id,
+      nome: p.nome,
       presencas: presencaCount[p.id] || 0,
       pct: totalChamadas > 0 ? Math.round(((presencaCount[p.id] || 0) / totalChamadas) * 100) : 0,
       cestasTotal: info.total,
       recebeuHoje: info.datas.has(hoje),
-    };
-  });
+    });
+  }
 
-  renderRanking(rankingData, totalChamadas);
+  entries.sort((a, b) => b.pct - a.pct || a.nome.localeCompare(b.nome));
+  renderRanking(entries, totalChamadas);
 }
 
-function renderRanking(rankingData, totalChamadas) {
+function renderRanking(entries, totalChamadas) {
   let html = `
     <div class="date-picker">
       <div style="flex:1;position:relative;">
@@ -112,7 +158,7 @@ function renderRanking(rankingData, totalChamadas) {
     <div class="counter">${totalChamadas} semana${totalChamadas !== 1 ? 's' : ''} no periodo</div>
   `;
 
-  if (rankingData.length === 0) {
+  if (entries.length === 0) {
     html += `
       <div class="empty-state">
         <div class="icon">🏆</div>
@@ -124,30 +170,47 @@ function renderRanking(rankingData, totalChamadas) {
     return;
   }
 
-  if (currentFilter === 'todos') {
-    // Grouped by type
-    for (const g of GRUPOS) {
-      const groupData = rankingData
-        .filter(p => p.grupo === g.value)
-        .sort((a, b) => b.presencas - a.presencas || a.nome.localeCompare(b.nome));
-
-      if (groupData.length === 0) continue;
-
-      html += `<div class="group-label">${g.plural}</div>`;
-      groupData.forEach((p, i) => {
-        html += renderRankingRow(i + 1, p, totalChamadas);
-      });
-    }
-  } else {
-    // Single group, sorted by presences
-    const sorted = rankingData.sort((a, b) => b.presencas - a.presencas || a.nome.localeCompare(b.nome));
-    sorted.forEach((p, i) => {
-      html += renderRankingRow(i + 1, p, totalChamadas);
-    });
-  }
+  entries.forEach((entry, i) => {
+    html += entry.type === 'familia'
+      ? renderFamiliaRow(i + 1, entry, totalChamadas)
+      : renderRankingRow(i + 1, entry, totalChamadas);
+  });
 
   content.innerHTML = html;
   attachRankingEvents();
+}
+
+function renderFamiliaRow(position, familia, totalChamadas) {
+  const colorClass = familia.pct >= 80 ? 'high' : familia.pct >= 50 ? 'mid' : 'low';
+  const memberNames = familia.members.map(m => m.nome.split(' ')[0]).join(' · ');
+  const cestaBadge = familia.cestasTotal > 0
+    ? `<div class="cesta-badge">🧺 ${familia.cestasTotal} ${familia.cestasTotal !== 1 ? 'entregas' : 'entrega'}</div>`
+    : '';
+  const btnCesta = familia.recebeuHoje
+    ? `<button class="btn-cesta done" disabled>Entregue hoje</button>`
+    : `<button class="btn-cesta-familia" data-familia="${familia.id}" data-familia-nome="${escapeHtml(familia.nome)}">Entregar cesta família</button>`;
+
+  return `
+    <div class="ranking-row familia">
+      <div class="ranking-row-top">
+        <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1;">
+          <div class="ranking-pos">${position}</div>
+          <div>
+            <div class="ranking-name">👨‍👩‍👧 ${escapeHtml(familia.nome)}</div>
+            <div class="ranking-familia-members">${escapeHtml(memberNames)}</div>
+          </div>
+        </div>
+        <div class="ranking-stats">
+          <div class="ranking-count ${colorClass}">${familia.presencas}/${totalChamadas}</div>
+          <div class="ranking-pct">${familia.pct}%</div>
+        </div>
+      </div>
+      <div class="ranking-row-bottom">
+        ${cestaBadge}
+        ${btnCesta}
+      </div>
+    </div>
+  `;
 }
 
 function renderRankingRow(position, pessoa, totalChamadas) {
@@ -163,7 +226,7 @@ function renderRankingRow(position, pessoa, totalChamadas) {
       <div class="ranking-row-top">
         <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1;">
           <div class="ranking-pos">${position}</div>
-          <div class="ranking-name">${escapeHtml(pessoa.nome)}</div>
+          <div class="ranking-name">👤 ${escapeHtml(pessoa.nome)}</div>
         </div>
         <div class="ranking-stats">
           <div class="ranking-count ${colorClass}">${pessoa.presencas}/${totalChamadas}</div>
@@ -205,6 +268,26 @@ function attachRankingEvents() {
       btn.textContent = 'Entregue!';
       btn.classList.add('done');
       window.showToast('Cesta registrada!');
+      setTimeout(() => loadRanking(), 600);
+    });
+  });
+
+  content.querySelectorAll('.btn-cesta-familia[data-familia]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const familiaId = btn.dataset.familia;
+      const familiaNome = btn.dataset.familiaNome;
+      btn.disabled = true;
+      btn.textContent = 'Entregando...';
+
+      const todas = await getPessoas();
+      const membros = todas.filter(p => p.familia_id === familiaId);
+      for (const membro of membros) {
+        await saveCesta({ pessoa_id: membro.id, data: todayStr() });
+      }
+
+      btn.textContent = 'Entregue!';
+      btn.classList.add('done');
+      window.showToast(`Cesta entregue para família ${familiaNome}!`);
       setTimeout(() => loadRanking(), 600);
     });
   });

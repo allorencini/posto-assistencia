@@ -33,7 +33,10 @@ function renderSubtabs() {
 
 // === Pessoas ===
 
-function renderPessoas(pessoas, filter) {
+function renderPessoas(pessoas, filter, familias = []) {
+  const familiaMap = {};
+  for (const f of familias) familiaMap[f.id] = f;
+
   const filtered = filter === 'todos'
     ? pessoas
     : pessoas.filter(p => p.grupo === filter);
@@ -87,6 +90,7 @@ function renderPessoas(pessoas, filter) {
               <span style="display:flex;gap:2px;font-size:14px;">${badges.join('')}</span>
             </div>
             ${p.telefone ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px;">${escapeHtml(p.telefone)}</div>` : ''}
+            ${p.familia_id ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px;">👨‍👩‍👧 ${escapeHtml(familiaMap[p.familia_id]?.nome || '')}</div>` : ''}
           </div>
           <div style="display:flex;gap:8px;">
             <button class="btn-icon" data-edit-pessoa="${p.id}" title="Editar" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✏️</button>
@@ -493,6 +497,14 @@ function showPessoaForm(editId = null) {
         </div>
       </div>
 
+      <div class="form-section-label">Família</div>
+      <div class="form-group">
+        <label>Família (opcional)</label>
+        <select class="form-input" id="form-pessoa-familia">
+          <option value="">— Sem família —</option>
+        </select>
+      </div>
+
       <div class="modal-actions">
         <button class="btn btn-secondary" id="form-cancel">CANCELAR</button>
         <button class="btn btn-primary" id="form-save">SALVAR</button>
@@ -501,6 +513,17 @@ function showPessoaForm(editId = null) {
   `;
 
   document.body.appendChild(overlay);
+
+  // Carregar famílias no select
+  getFamilias().then(familias => {
+    const sel = document.getElementById('form-pessoa-familia');
+    for (const f of familias) {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.nome;
+      sel.appendChild(opt);
+    }
+  });
 
   // CEP mask
   const cepInput = document.getElementById('form-cep');
@@ -547,6 +570,7 @@ function showPessoaForm(editId = null) {
         }
         document.getElementById('form-visita-obs').value = p.visita_obs || '';
       }
+      document.getElementById('form-pessoa-familia').value = p.familia_id || '';
     });
   }
 
@@ -579,6 +603,8 @@ function showPessoaForm(editId = null) {
     pessoa.visita_obs = pessoa.visitada && pessoa.apta_cesta === false
       ? document.getElementById('form-visita-obs').value.trim() || null
       : null;
+    const familiaId = document.getElementById('form-pessoa-familia').value;
+    pessoa.familia_id = familiaId || null;
 
     await savePessoa(pessoa);
     overlay.remove();

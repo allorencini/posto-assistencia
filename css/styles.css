@@ -324,6 +324,16 @@ textarea.form-input {
 .toast.toast-error { border-left-color: var(--red); }
 .toast.toast-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* === Família (ranking) === */
+.ranking-row.familia {
+  border-left: 3px solid var(--yellow);
+}
+.ranking-familia-members {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 /* === Empty State === */
 .empty-state {
   text-align: center; padding: 40px 20px; color: var(--text-muted);

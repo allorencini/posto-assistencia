@@ -226,10 +226,7 @@ function showFamiliaForm(editId = null) {
       </div>
       <div class="form-group">
         <label>Adicionar membros</label>
-        <div style="display:flex;gap:8px;">
-          <input type="text" class="form-input" id="familia-busca" placeholder="Buscar pessoa..." style="flex:1;">
-          <button class="btn btn-primary" id="familia-add-membro" style="width:auto;padding:0 16px;">+</button>
-        </div>
+        <input type="text" class="form-input" id="familia-busca" placeholder="Buscar pessoa...">
         <div id="familia-busca-resultados" style="background:#111827;border:1px solid #333;border-radius:8px;margin-top:4px;display:none;max-height:140px;overflow-y:auto;"></div>
       </div>
       <div class="form-group">
@@ -301,9 +298,6 @@ function showFamiliaForm(editId = null) {
     showResultados(term);
   });
 
-  document.getElementById('familia-add-membro').addEventListener('click', () => {
-    showResultados(buscaInput.value.toLowerCase().trim());
-  });
 
   if (editId) {
     Promise.all([getFamilia(editId), getPessoas()]).then(([familia, todas]) => {

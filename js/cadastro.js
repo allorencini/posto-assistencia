@@ -272,13 +272,11 @@ function showFamiliaForm(editId = null) {
   const buscaInput = document.getElementById('familia-busca');
   const resultados = document.getElementById('familia-busca-resultados');
 
-  buscaInput.addEventListener('input', async () => {
-    const term = buscaInput.value.toLowerCase().trim();
-    if (!term) { resultados.style.display = 'none'; return; }
+  async function showResultados(term) {
     const todas = await getPessoas();
     const matches = todas.filter(p =>
-      p.nome.toLowerCase().includes(term) && !membros.find(m => m.id === p.id)
-    ).slice(0, 6);
+      (!term || p.nome.toLowerCase().includes(term)) && !membros.find(m => m.id === p.id)
+    ).slice(0, 10);
     if (matches.length === 0) { resultados.style.display = 'none'; return; }
     resultados.style.display = '';
     resultados.innerHTML = matches.map(p => `
@@ -295,6 +293,16 @@ function showFamiliaForm(editId = null) {
         resultados.style.display = 'none';
       });
     });
+  }
+
+  buscaInput.addEventListener('input', () => {
+    const term = buscaInput.value.toLowerCase().trim();
+    if (!term) { resultados.style.display = 'none'; return; }
+    showResultados(term);
+  });
+
+  document.getElementById('familia-add-membro').addEventListener('click', () => {
+    showResultados(buscaInput.value.toLowerCase().trim());
   });
 
   if (editId) {

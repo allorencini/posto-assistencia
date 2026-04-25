@@ -1,6 +1,7 @@
 import {
   getPessoas, getChamadaByData, saveChamada,
-  getPresencasByChamada, savePresencasBatch
+  getPresencasByChamada, savePresencasBatch,
+  getChamadas, getAllPresencas
 } from './db.js';
 
 const content = document.getElementById('chamada-content');
@@ -9,6 +10,7 @@ let currentFilter = 'todos';
 let currentSearch = '';
 let chamadaState = {}; // { pessoaId: { presente: bool, presencaId: uuid } }
 let currentChamada = null;
+let historicoMap = {}; // { pessoaId: ['P'|'F'|'-', ...] } — oldest to newest, last 4 chamadas before currentDate
 
 const GRUPOS = [
   { value: 'evangelizacao', label: 'Evangelização', plural: 'Evangelização' },
@@ -54,7 +56,33 @@ async function loadChamada() {
     }
   }
 
+  await computeHistorico();
+
   renderChamada(pessoas);
+}
+
+async function computeHistorico() {
+  const [allChamadas, allPresencas] = await Promise.all([getChamadas(), getAllPresencas()]);
+
+  const previous = allChamadas
+    .filter(c => c.data < currentDate)
+    .sort((a, b) => b.data.localeCompare(a.data))
+    .slice(0, 4)
+    .reverse(); // oldest to newest
+
+  const presencaIndex = {};
+  for (const p of allPresencas) {
+    presencaIndex[`${p.chamada_id}:${p.pessoa_id}`] = p.presente;
+  }
+
+  historicoMap = {};
+  for (const pessoaId of Object.keys(chamadaState)) {
+    historicoMap[pessoaId] = previous.map(chamada => {
+      const present = presencaIndex[`${chamada.id}:${pessoaId}`];
+      if (present === undefined) return '-';
+      return present ? 'P' : 'F';
+    });
+  }
 }
 
 function renderChamada(pessoas) {
@@ -109,9 +137,21 @@ function renderChamada(pessoas) {
     for (const p of list) {
       const state = chamadaState[p.id];
       const isPresent = state?.presente || false;
+      const hist = historicoMap[p.id] || [];
+      const histHtml = hist.length === 0 ? '' : `
+        <div class="presence-historico">
+          ${hist.map(h => {
+            const cls = h === 'P' ? 'hist-p' : h === 'F' ? 'hist-f' : 'hist-none';
+            return `<span class="hist-badge ${cls}">${h}</span>`;
+          }).join('')}
+        </div>
+      `;
       html += `
         <div class="presence-row">
-          <div class="presence-name">${escapeHtml(p.nome)}</div>
+          <div class="presence-info">
+            <div class="presence-name">${escapeHtml(p.nome)}</div>
+            ${histHtml}
+          </div>
           <button class="presence-btn ${isPresent ? 'present' : 'absent'}"
                   data-pessoa="${p.id}">
             ${isPresent ? 'PRESENTE' : 'FALTA'}

@@ -132,7 +132,17 @@ select.form-input { appearance: none; }
   background: var(--bg-secondary); border-radius: var(--radius);
   margin-bottom: 8px;
 }
-.presence-name { flex: 1; padding: 12px; font-size: 18px; font-weight: 500; }
+.presence-info { flex: 1; padding: 8px 12px; min-width: 0; }
+.presence-name { font-size: 17px; font-weight: 500; }
+.presence-historico { display: flex; gap: 4px; margin-top: 4px; }
+.hist-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 4px;
+  font-size: 11px; font-weight: 700; font-family: monospace;
+}
+.hist-badge.hist-p { background: var(--green); color: #000; }
+.hist-badge.hist-f { background: var(--red); color: #fff; }
+.hist-badge.hist-none { background: rgba(255,255,255,0.06); color: var(--text-muted); }
 .presence-btn {
   padding: 12px 16px; border-radius: 8px; border: none;
   font-size: 15px; font-weight: bold; cursor: pointer;

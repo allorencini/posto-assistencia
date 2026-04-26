@@ -12,7 +12,7 @@ window.showToast = function(msg, type = 'success') {
 };
 
 // Navigation
-const pages = ['cadastro', 'chamada', 'historico', 'ranking', 'estoque'];
+const pages = ['cadastro', 'chamada', 'historico', 'ranking', 'estoque', 'pedidos'];
 let currentPage = 'cadastro';
 
 function navigateTo(page) {
@@ -51,6 +51,7 @@ async function init() {
   await import('./historico.js');
   await import('./ranking.js');
   await import('./estoque.js');
+  await import('./pedidos.js');
 
   // Start sync engine
   const { initSync } = await import('./sync.js');

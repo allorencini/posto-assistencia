@@ -1,5 +1,5 @@
 const DB_NAME = 'presenca-db';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 let db = null;
 
 export function initDB() {
@@ -62,6 +62,15 @@ export function initDB() {
       if (!db.objectStoreNames.contains('familias')) {
         const store = db.createObjectStore('familias', { keyPath: 'id' });
         store.createIndex('nome', 'nome', { unique: false });
+        store.createIndex('ativo', 'ativo', { unique: false });
+      }
+
+      // pedidos store (v5) — donation requests
+      if (!db.objectStoreNames.contains('pedidos')) {
+        const store = db.createObjectStore('pedidos', { keyPath: 'id' });
+        store.createIndex('pessoa_id', 'pessoa_id', { unique: false });
+        store.createIndex('familia_id', 'familia_id', { unique: false });
+        store.createIndex('status', 'status', { unique: false });
         store.createIndex('ativo', 'ativo', { unique: false });
       }
     };
@@ -340,6 +349,39 @@ export function deleteFamilia(id) {
 
 export function getPessoasByFamilia(familiaId) {
   return getAllByIndex('pessoas', 'familia_id', familiaId);
+}
+
+// === Pedidos (doações) ===
+export function getPedidos() {
+  return getAll('pedidos').then(list => list.filter(p => p.ativo !== false));
+}
+
+export function getPedido(id) {
+  return getByKey('pedidos', id);
+}
+
+export function savePedido(pedido) {
+  if (!pedido.id) pedido.id = crypto.randomUUID();
+  if (!pedido.criado_em) pedido.criado_em = new Date().toISOString();
+  pedido.atualizado_em = new Date().toISOString();
+  if (pedido.ativo === undefined) pedido.ativo = true;
+  if (!pedido.status) pedido.status = 'pendente';
+  if (!pedido.solicitado_em) pedido.solicitado_em = new Date().toISOString().slice(0, 10);
+  return put('pedidos', pedido).then(() => {
+    addToSyncQueue('pedidos', 'upsert', pedido);
+    return pedido;
+  });
+}
+
+export function deletePedido(id) {
+  return getPedido(id).then(pedido => {
+    if (!pedido) return;
+    pedido.ativo = false;
+    pedido.atualizado_em = new Date().toISOString();
+    return put('pedidos', pedido).then(() => {
+      addToSyncQueue('pedidos', 'upsert', pedido);
+    });
+  });
 }
 
 // === Sync Queue ===

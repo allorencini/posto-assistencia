@@ -73,8 +73,8 @@ html, body {
   gap: 2px; background: none; border: none; cursor: pointer;
   padding: 6px 0; min-height: var(--touch-min);
 }
-.nav-icon { font-size: 22px; }
-.nav-label { font-size: 11px; color: var(--text-muted); }
+.nav-icon { font-size: 20px; }
+.nav-label { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
 .nav-btn.active .nav-label { color: var(--accent); font-weight: bold; }
 
 /* === Shared Components === */
@@ -342,6 +342,23 @@ textarea.form-input {
   font-size: 12px;
   color: var(--text-muted);
   margin-top: 2px;
+}
+
+/* === Status badges (pedidos) === */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.status-badge.pendente {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--yellow);
+}
+.status-badge.atendido {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--green);
 }
 
 /* === Empty State === */

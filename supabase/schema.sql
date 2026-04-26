@@ -69,6 +69,23 @@ CREATE TABLE itens (
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Table: pedidos (pedidos de doação)
+CREATE TABLE pedidos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pessoa_id UUID REFERENCES pessoas(id) ON DELETE SET NULL,
+  familia_id UUID REFERENCES familias(id) ON DELETE SET NULL,
+  item TEXT NOT NULL,
+  quantidade INTEGER NOT NULL DEFAULT 1 CHECK (quantidade > 0),
+  observacao TEXT,
+  status TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'atendido')),
+  solicitado_em DATE NOT NULL DEFAULT CURRENT_DATE,
+  atendido_em DATE,
+  ativo BOOLEAN NOT NULL DEFAULT TRUE,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (pessoa_id IS NOT NULL OR familia_id IS NOT NULL)
+);
+
 -- Indexes for common queries
 CREATE INDEX idx_presencas_chamada ON presencas(chamada_id);
 CREATE INDEX idx_presencas_pessoa ON presencas(pessoa_id);
@@ -77,6 +94,9 @@ CREATE INDEX idx_pessoas_grupo ON pessoas(grupo);
 CREATE INDEX idx_cestas_pessoa ON cestas(pessoa_id);
 CREATE INDEX idx_cestas_data ON cestas(data);
 CREATE INDEX idx_itens_categoria ON itens(categoria);
+CREATE INDEX idx_pedidos_pessoa ON pedidos(pessoa_id);
+CREATE INDEX idx_pedidos_familia ON pedidos(familia_id);
+CREATE INDEX idx_pedidos_status ON pedidos(status);
 
 -- Auto-update atualizado_em
 CREATE OR REPLACE FUNCTION update_atualizado_em()
@@ -103,18 +123,24 @@ CREATE TRIGGER itens_atualizado
   BEFORE UPDATE ON itens
   FOR EACH ROW EXECUTE FUNCTION update_atualizado_em();
 
+CREATE TRIGGER pedidos_atualizado
+  BEFORE UPDATE ON pedidos
+  FOR EACH ROW EXECUTE FUNCTION update_atualizado_em();
+
 -- RLS: Allow anonymous access (no login requirement)
 ALTER TABLE pessoas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chamadas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE presencas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cestas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE itens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pedidos ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow all access to pessoas" ON pessoas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access to chamadas" ON chamadas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access to presencas" ON presencas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access to cestas" ON cestas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access to itens" ON itens FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to pedidos" ON pedidos FOR ALL USING (true) WITH CHECK (true);
 
 -- === Migration: apenas a tabela itens (para quem ja tem o schema antigo) ===
 -- CREATE TABLE itens (

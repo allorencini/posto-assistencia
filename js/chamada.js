@@ -1,6 +1,6 @@
 import {
   getPessoas, getChamadaByData, saveChamada,
-  getPresencasByChamada, savePresencasBatch,
+  getPresencasByChamada, savePresenca,
   getChamadas, getAllPresencas
 } from './db.js';
 
@@ -168,12 +168,6 @@ function renderChamada(pessoas) {
         <p>Nenhuma pessoa cadastrada. Cadastre pessoas primeiro.</p>
       </div>
     `;
-  } else {
-    html += `
-      <button class="btn btn-primary" id="btn-salvar-chamada" style="margin-top:16px;">
-        SALVAR CHAMADA
-      </button>
-    `;
   }
 
   content.innerHTML = html;
@@ -204,58 +198,42 @@ function attachChamadaEvents() {
     });
   });
 
-  // Presence toggle buttons
+  // Presence toggle buttons — save individual presença on each click
   content.querySelectorAll('.presence-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const pessoaId = btn.dataset.pessoa;
       const state = chamadaState[pessoaId];
       state.presente = !state.presente;
 
-      // Update button visually (instant feedback)
+      // Instant visual feedback
       btn.className = `presence-btn ${state.presente ? 'present' : 'absent'}`;
       btn.textContent = state.presente ? 'PRESENTE' : 'FALTA';
+      btn.disabled = true;
 
       // Update counter
       const totalPresent = Object.values(chamadaState).filter(s => s.presente).length;
       const totalPeople = Object.keys(chamadaState).length;
       const counter = content.querySelector('.counter');
       if (counter) counter.innerHTML = `Presentes: <strong>${totalPresent}</strong> / ${totalPeople} cadastrados`;
+
+      // Ensure chamada record exists before saving presença
+      if (!currentChamada) {
+        const existing = await getChamadaByData(currentDate);
+        currentChamada = existing || await saveChamada({ data: currentDate });
+      }
+
+      const presenca = {
+        id: state.id || crypto.randomUUID(),
+        chamada_id: currentChamada.id,
+        pessoa_id: pessoaId,
+        presente: state.presente,
+      };
+      const saved = await savePresenca(presenca);
+      state.id = saved.id;
+
+      btn.disabled = false;
     });
   });
-
-  // Save button
-  document.getElementById('btn-salvar-chamada')?.addEventListener('click', salvarChamada);
-}
-
-async function salvarChamada() {
-  // Always verify DB to prevent duplicate chamadas for same date
-  const existing = await getChamadaByData(currentDate);
-  if (existing) {
-    currentChamada = existing;
-  } else if (!currentChamada) {
-    currentChamada = await saveChamada({ data: currentDate });
-  }
-
-  // Only save records that already exist in DB (update them) or were explicitly marked present.
-  // Skip id=null + presente=false entries — they were never touched on this device and saving
-  // them would overwrite present=true records saved by another device.
-  const presencas = Object.entries(chamadaState)
-    .filter(([, state]) => state.id !== null || state.presente === true)
-    .map(([pessoaId, state]) => ({
-      id: state.id || crypto.randomUUID(),
-      chamada_id: currentChamada.id,
-      pessoa_id: pessoaId,
-      presente: state.presente,
-    }));
-
-  await savePresencasBatch(presencas);
-
-  // Update local state with saved IDs
-  for (const p of presencas) {
-    chamadaState[p.pessoa_id].id = p.id;
-  }
-
-  window.showToast('Chamada salva!');
 }
 
 function escapeHtml(str) {

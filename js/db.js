@@ -182,11 +182,21 @@ export function getChamadaByData(data) {
 }
 
 export function saveChamada(chamada) {
-  if (!chamada.id) chamada.id = crypto.randomUUID();
+  // ID determinístico baseado na data — garante que dois dispositivos criando
+  // a chamada do mesmo dia gerem registros idênticos, sem conflito de UUID.
+  if (!chamada.id) chamada.id = `chamada-${chamada.data}`;
   if (!chamada.criado_em) chamada.criado_em = new Date().toISOString();
-  return put('chamadas', chamada).then(() => {
-    addToSyncQueue('chamadas', 'upsert', chamada);
-    return chamada;
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['chamadas', 'sync_queue'], 'readwrite');
+    transaction.objectStore('chamadas').put(chamada);
+    transaction.objectStore('sync_queue').put({
+      table: 'chamadas',
+      operation: 'upsert',
+      data: chamada,
+      timestamp: Date.now(),
+    });
+    transaction.oncomplete = () => resolve(chamada);
+    transaction.onerror = () => reject(transaction.error);
   });
 }
 

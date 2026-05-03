@@ -207,9 +207,17 @@ export function savePresenca(presenca) {
   if (!presenca.id) presenca.id = crypto.randomUUID();
   if (!presenca.criado_em) presenca.criado_em = new Date().toISOString();
   presenca.atualizado_em = new Date().toISOString();
-  return put('presencas', presenca).then(() => {
-    addToSyncQueue('presencas', 'upsert', presenca);
-    return presenca;
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['presencas', 'sync_queue'], 'readwrite');
+    transaction.objectStore('presencas').put(presenca);
+    transaction.objectStore('sync_queue').put({
+      table: 'presencas',
+      operation: 'upsert',
+      data: presenca,
+      timestamp: Date.now(),
+    });
+    transaction.oncomplete = () => resolve(presenca);
+    transaction.onerror = () => reject(transaction.error);
   });
 }
 

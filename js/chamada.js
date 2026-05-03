@@ -236,13 +236,17 @@ async function salvarChamada() {
     currentChamada = await saveChamada({ data: currentDate });
   }
 
-  // Build presencas array
-  const presencas = Object.entries(chamadaState).map(([pessoaId, state]) => ({
-    id: state.id || crypto.randomUUID(),
-    chamada_id: currentChamada.id,
-    pessoa_id: pessoaId,
-    presente: state.presente,
-  }));
+  // Only save records that already exist in DB (update them) or were explicitly marked present.
+  // Skip id=null + presente=false entries — they were never touched on this device and saving
+  // them would overwrite present=true records saved by another device.
+  const presencas = Object.entries(chamadaState)
+    .filter(([, state]) => state.id !== null || state.presente === true)
+    .map(([pessoaId, state]) => ({
+      id: state.id || crypto.randomUUID(),
+      chamada_id: currentChamada.id,
+      pessoa_id: pessoaId,
+      presente: state.presente,
+    }));
 
   await savePresencasBatch(presencas);
 

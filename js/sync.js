@@ -28,15 +28,17 @@ async function pushChanges() {
 
   for (const item of queue) {
     try {
-      const { table, data } = item;
+      const { table, data, operation } = item;
+      let error;
 
-      // Upsert to Supabase (on conflict update)
-      const onConflict = table === 'presencas' ? 'chamada_id,pessoa_id'
-        : table === 'chamadas' ? 'data'
-        : 'id';
-      const { error } = await sb
-        .from(table)
-        .upsert(data, { onConflict });
+      if (operation === 'delete') {
+        ({ error } = await sb.from(table).delete().eq('id', data.id));
+      } else {
+        const onConflict = table === 'presencas' ? 'chamada_id,pessoa_id'
+          : table === 'chamadas' ? 'data'
+          : 'id';
+        ({ error } = await sb.from(table).upsert(data, { onConflict }));
+      }
 
       if (error) {
         console.warn(`Sync error for ${table}:`, error.message);

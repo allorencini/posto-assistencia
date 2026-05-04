@@ -365,6 +365,27 @@ export function deletePedido(id) {
   });
 }
 
+export async function deleteChamada(chamadaId) {
+  const presencas = await getPresencasByChamada(chamadaId);
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['chamadas', 'presencas', 'sync_queue'], 'readwrite');
+    const chamadaStore = transaction.objectStore('chamadas');
+    const presencasStore = transaction.objectStore('presencas');
+    const syncStore = transaction.objectStore('sync_queue');
+
+    chamadaStore.delete(chamadaId);
+    syncStore.put({ table: 'chamadas', operation: 'delete', data: { id: chamadaId }, timestamp: Date.now() });
+
+    for (const p of presencas) {
+      presencasStore.delete(p.id);
+      syncStore.put({ table: 'presencas', operation: 'delete', data: { id: p.id }, timestamp: Date.now() });
+    }
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
 // === Sync Queue ===
 // Grava dado no store e na sync_queue em uma única transação atômica.
 // Se qualquer um falhar, ambos são revertidos — sem registros locais órfãos.

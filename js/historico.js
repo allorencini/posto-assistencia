@@ -1,6 +1,6 @@
 import {
   getPessoas, getChamadas, getPresencasByChamada, getPresencasByPessoa,
-  getCestas, deleteCesta, savePresenca
+  getCestas, deleteCesta, savePresenca, deleteChamada
 } from './db.js';
 
 const content = document.getElementById('historico-content');
@@ -128,10 +128,18 @@ async function renderPorData() {
         }
 
         html += `
-          <button class="btn btn-secondary concluir-edicao" data-chamada="${chamada.id}"
-            style="margin-top:10px;width:100%;">
-            Concluir edição
-          </button>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn btn-secondary concluir-edicao" data-chamada="${chamada.id}"
+              style="flex:1;">
+              Concluir edição
+            </button>
+            <button class="btn btn-excluir-chamada" data-chamada="${chamada.id}"
+              style="padding:0 16px;border-radius:8px;border:1px solid var(--red);
+                     background:rgba(239,68,68,0.12);color:var(--red);
+                     font-size:14px;cursor:pointer;min-height:var(--touch-min);">
+              Excluir data
+            </button>
+          </div>
         `;
       } else {
         const searchFiltered = searchTerm
@@ -452,6 +460,22 @@ function attachHistoricoEvents() {
       e.stopPropagation();
       editingData = null;
       editState = {};
+      loadHistorico();
+    });
+  });
+
+  // Excluir data (chamada + todas as presenças)
+  content.querySelectorAll('.btn-excluir-chamada').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const chamadaId = btn.dataset.chamada;
+      if (!confirm('Excluir esta data e todas as presenças registradas? Esta ação não pode ser desfeita.')) return;
+      btn.disabled = true;
+      await deleteChamada(chamadaId);
+      expandedDatas.delete(chamadaId);
+      editingData = null;
+      editState = {};
+      window.showToast('Data excluída.');
       loadHistorico();
     });
   });

@@ -159,16 +159,18 @@ async function renderPorData() {
         }
 
         html += `
-          <div style="display:flex;gap:8px;margin-top:10px;">
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
             <button class="btn btn-secondary concluir-edicao" data-chamada="${chamada.id}"
               style="flex:1;">
               Concluir edição
             </button>
-            <button class="btn btn-excluir-chamada" data-chamada="${chamada.id}"
-              style="padding:0 16px;border-radius:8px;border:1px solid var(--red);
-                     background:rgba(239,68,68,0.12);color:var(--red);
-                     font-size:14px;cursor:pointer;min-height:var(--touch-min);">
-              Excluir data
+            <button class="btn-excluir-chamada" data-chamada="${chamada.id}"
+              title="Excluir esta data"
+              style="width:40px;height:40px;border-radius:8px;border:1px solid var(--border);
+                     background:var(--bg-nav);color:var(--text-muted);
+                     font-size:18px;cursor:pointer;display:flex;align-items:center;
+                     justify-content:center;flex-shrink:0;">
+              🗑️
             </button>
           </div>
         `;

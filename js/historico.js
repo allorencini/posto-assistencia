@@ -32,9 +32,20 @@ function escapeHtml(str) {
 }
 
 async function loadHistorico() {
+  const searchFocused = document.activeElement?.id === 'historico-search';
+
   if (currentView === 'por-data') await renderPorData();
   else if (currentView === 'por-pessoa') await renderPorPessoa();
   else await renderCestas();
+
+  // Restaura foco no campo de busca após re-render (re-render recria o input)
+  if (searchFocused) {
+    const el = document.getElementById('historico-search');
+    if (el) {
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    }
+  }
 }
 
 // ─── Por Data ────────────────────────────────────────────────────────────────

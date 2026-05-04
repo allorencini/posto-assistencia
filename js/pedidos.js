@@ -35,8 +35,6 @@ function renderPedidos(pedidos, pessoaMap, familiaMap) {
     ? pedidos
     : pedidos.filter(p => p.status === currentFilter);
 
-  filtered.sort((a, b) => (b.solicitado_em || '').localeCompare(a.solicitado_em || ''));
-
   const totalPendentes = pedidos.filter(p => p.status === 'pendente').length;
   const totalAtendidos = pedidos.filter(p => p.status === 'atendido').length;
 
@@ -64,40 +62,94 @@ function renderPedidos(pedidos, pessoaMap, familiaMap) {
     return;
   }
 
+  // Agrupar por item (normalizado em maiúsculo)
+  const groups = {};
   for (const pedido of filtered) {
-    const pessoa = pedido.pessoa_id ? pessoaMap[pedido.pessoa_id] : null;
-    const familia = pedido.familia_id ? familiaMap[pedido.familia_id] : null;
-    const titulo = familia
-      ? `👨‍👩‍👧 Família ${escapeHtml(familia.nome)}`
-      : pessoa
-        ? `👤 ${escapeHtml(pessoa.nome)}`
-        : '<em style="color:var(--text-muted);">— sem destinatário —</em>';
+    const key = (pedido.item || '').toUpperCase().trim();
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(pedido);
+  }
 
-    const isPendente = pedido.status === 'pendente';
-    const statusBadge = isPendente
-      ? '<span class="status-badge pendente">Pendente</span>'
-      : `<span class="status-badge atendido">Atendido em ${formatDateBR(pedido.atendido_em)}</span>`;
+  // Dentro de cada grupo: pendentes primeiro (ordenados por data asc = mais antigo = #1),
+  // depois atendidos (ordenados por atendido_em desc)
+  for (const key of Object.keys(groups)) {
+    groups[key].sort((a, b) => {
+      if (a.status === 'pendente' && b.status !== 'pendente') return -1;
+      if (a.status !== 'pendente' && b.status === 'pendente') return 1;
+      if (a.status === 'pendente') {
+        return (a.solicitado_em || '').localeCompare(b.solicitado_em || '');
+      }
+      return (b.atendido_em || b.solicitado_em || '').localeCompare(a.atendido_em || a.solicitado_em || '');
+    });
+  }
 
-    const qtdTxt = pedido.quantidade > 1 ? ` (${pedido.quantidade})` : '';
+  // Ordenar grupos: mais pendentes primeiro, depois alfabético
+  const sortedKeys = Object.keys(groups).sort((a, b) => {
+    const aPend = groups[a].filter(p => p.status === 'pendente').length;
+    const bPend = groups[b].filter(p => p.status === 'pendente').length;
+    if (aPend !== bPend) return bPend - aPend;
+    return a.localeCompare(b);
+  });
 
-    html += `
-      <div class="card pedido-card">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <div style="min-width:0;flex:1;">
-            <div style="font-size:15px;color:var(--text-muted);margin-bottom:4px;">${titulo}</div>
-            <div style="font-size:17px;font-weight:600;">${escapeHtml(pedido.item)}${qtdTxt}</div>
-            ${pedido.observacao ? `<div style="font-size:13px;color:var(--text-muted);margin-top:4px;">${escapeHtml(pedido.observacao)}</div>` : ''}
-            <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">Solicitado em ${formatDateBR(pedido.solicitado_em)}</div>
-            <div style="margin-top:8px;">${statusBadge}</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:4px;">
-            ${isPendente ? `<button class="btn-icon" data-atender-pedido="${pedido.id}" title="Marcar atendido" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✅</button>` : ''}
-            <button class="btn-icon" data-edit-pedido="${pedido.id}" title="Editar" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✏️</button>
-            <button class="btn-icon" data-delete-pedido="${pedido.id}" title="Excluir" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">🗑️</button>
+  for (const key of sortedKeys) {
+    const group = groups[key];
+    const pendentesGrupo = group.filter(p => p.status === 'pendente').length;
+
+    const labelSuffix = pendentesGrupo > 0
+      ? ` <span style="font-size:13px;color:var(--text-muted);font-weight:400;">(${pendentesGrupo} na fila)</span>`
+      : '';
+    html += `<div class="group-label">${escapeHtml(key)}${labelSuffix}</div>`;
+
+    let rankCounter = 0;
+    for (const pedido of group) {
+      const pessoa = pedido.pessoa_id ? pessoaMap[pedido.pessoa_id] : null;
+      const familia = pedido.familia_id ? familiaMap[pedido.familia_id] : null;
+      const titulo = familia
+        ? `👨‍👩‍👧 ${escapeHtml(familia.nome)}`
+        : pessoa
+          ? `👤 ${escapeHtml(pessoa.nome)}`
+          : '<em style="color:var(--text-muted);">— sem destinatário —</em>';
+
+      const isPendente = pedido.status === 'pendente';
+
+      let rankBadge = '';
+      if (isPendente) {
+        rankCounter++;
+        const isFirst = rankCounter === 1;
+        rankBadge = `
+          <div style="
+            min-width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+            justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;
+            background:${isFirst ? 'rgba(74,222,128,0.15)' : 'var(--bg-nav)'};
+            color:${isFirst ? 'var(--green)' : 'var(--text-muted)'};
+            border:1px solid ${isFirst ? 'var(--green)' : 'var(--border)'};
+          ">#${rankCounter}</div>
+        `;
+      }
+
+      const statusBadge = isPendente
+        ? '<span class="status-badge pendente">Pendente</span>'
+        : `<span class="status-badge atendido">Atendido em ${formatDateBR(pedido.atendido_em)}</span>`;
+
+      html += `
+        <div class="card pedido-card" style="${!isPendente ? 'opacity:0.55;' : ''}">
+          <div style="display:flex;align-items:center;gap:10px;">
+            ${rankBadge}
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:15px;font-weight:600;">${titulo}</div>
+              ${pedido.observacao ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px;">${escapeHtml(pedido.observacao)}</div>` : ''}
+              <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Solicitado em ${formatDateBR(pedido.solicitado_em)}</div>
+              <div style="margin-top:6px;">${statusBadge}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+              ${isPendente ? `<button class="btn-icon" data-atender-pedido="${pedido.id}" title="Marcar atendido" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✅</button>` : ''}
+              <button class="btn-icon" data-edit-pedido="${pedido.id}" title="Editar" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✏️</button>
+              <button class="btn-icon" data-delete-pedido="${pedido.id}" title="Excluir" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">🗑️</button>
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
+    }
   }
 
   content.innerHTML = html;
@@ -151,12 +203,7 @@ function showPedidoForm(editId = null) {
 
       <div class="form-group">
         <label>Item solicitado *</label>
-        <input type="text" class="form-input" id="form-item" placeholder="Ex: Colchão, Geladeira, Roupa de cama..." autocomplete="off">
-      </div>
-
-      <div class="form-group" style="max-width:140px;">
-        <label>Quantidade</label>
-        <input type="number" class="form-input" id="form-qtd" value="1" min="1">
+        <input type="text" class="form-input" id="form-item" placeholder="Ex: COLCHÃO, GELADEIRA, ROUPA DE CAMA..." autocomplete="off">
       </div>
 
       <div class="form-group">
@@ -172,6 +219,14 @@ function showPedidoForm(editId = null) {
   `;
 
   document.body.appendChild(overlay);
+
+  // Força uppercase no campo item
+  const itemInput = document.getElementById('form-item');
+  itemInput.addEventListener('input', () => {
+    const pos = itemInput.selectionStart;
+    itemInput.value = itemInput.value.toUpperCase();
+    itemInput.setSelectionRange(pos, pos);
+  });
 
   let destTipo = 'pessoa';
   let destId = null;
@@ -246,7 +301,6 @@ function showPedidoForm(editId = null) {
     Promise.all([getPedido(editId), getPessoas(), getFamilias()]).then(([pedido, pessoas, familias]) => {
       if (!pedido) return;
       document.getElementById('form-item').value = pedido.item || '';
-      document.getElementById('form-qtd').value = pedido.quantidade || 1;
       document.getElementById('form-obs').value = pedido.observacao || '';
 
       if (pedido.familia_id) {
@@ -274,8 +328,7 @@ function showPedidoForm(editId = null) {
   document.getElementById('form-cancel').addEventListener('click', () => overlay.remove());
 
   document.getElementById('form-save').addEventListener('click', async () => {
-    const item = document.getElementById('form-item').value.trim();
-    const qtd = parseInt(document.getElementById('form-qtd').value, 10) || 1;
+    const item = document.getElementById('form-item').value.trim().toUpperCase();
     const obs = document.getElementById('form-obs').value.trim();
 
     if (!destId) {
@@ -290,7 +343,7 @@ function showPedidoForm(editId = null) {
 
     const pedido = editId ? await getPedido(editId) : {};
     pedido.item = item;
-    pedido.quantidade = Math.max(1, qtd);
+    pedido.quantidade = 1;
     pedido.observacao = obs || null;
     pedido.pessoa_id = destTipo === 'pessoa' ? destId : null;
     pedido.familia_id = destTipo === 'familia' ? destId : null;

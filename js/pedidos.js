@@ -5,6 +5,7 @@ import {
 
 const content = document.getElementById('pedidos-content');
 let currentFilter = 'pendente'; // 'todos' | 'pendente' | 'atendido'
+let expandedGroups = null; // null = inicializar na primeira render; Set após isso
 
 function todayStr() {
   const d = new Date();
@@ -91,65 +92,94 @@ function renderPedidos(pedidos, pessoaMap, familiaMap) {
     return a.localeCompare(b);
   });
 
+  // Na primeira render (ou ao trocar de filtro), inicializar estado do accordion:
+  // grupos com pendentes abrem por padrão; só-atendidos fecham
+  if (expandedGroups === null) {
+    expandedGroups = new Set(
+      sortedKeys.filter(k => groups[k].some(p => p.status === 'pendente'))
+    );
+  }
+
   for (const key of sortedKeys) {
     const group = groups[key];
     const pendentesGrupo = group.filter(p => p.status === 'pendente').length;
+    const isOpen = expandedGroups.has(key);
 
-    const labelSuffix = pendentesGrupo > 0
-      ? ` <span style="font-size:13px;color:var(--text-muted);font-weight:400;">(${pendentesGrupo} na fila)</span>`
-      : '';
-    html += `<div class="group-label">${escapeHtml(key)}${labelSuffix}</div>`;
+    const badge = pendentesGrupo > 0
+      ? `<span style="font-size:13px;color:var(--green);font-weight:600;">${pendentesGrupo} na fila</span>`
+      : `<span style="font-size:13px;color:var(--text-muted);">todos atendidos</span>`;
 
-    let rankCounter = 0;
-    for (const pedido of group) {
-      const pessoa = pedido.pessoa_id ? pessoaMap[pedido.pessoa_id] : null;
-      const familia = pedido.familia_id ? familiaMap[pedido.familia_id] : null;
-      const titulo = familia
-        ? `👨‍👩‍👧 ${escapeHtml(familia.nome)}`
-        : pessoa
-          ? `👤 ${escapeHtml(pessoa.nome)}`
-          : '<em style="color:var(--text-muted);">— sem destinatário —</em>';
+    html += `
+      <div class="card" style="margin-top:10px;padding:0;overflow:hidden;">
+        <div class="pedido-group-header" data-group="${escapeHtml(key)}"
+          style="display:flex;justify-content:space-between;align-items:center;
+                 padding:14px 16px;cursor:pointer;gap:10px;">
+          <div style="font-size:16px;font-weight:700;flex:1;">🎁 ${escapeHtml(key)}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            ${badge}
+            <span style="color:var(--text-muted);font-size:14px;">${isOpen ? '▴' : '▾'}</span>
+          </div>
+        </div>
+    `;
 
-      const isPendente = pedido.status === 'pendente';
+    if (isOpen) {
+      html += `<div style="border-top:1px solid var(--border);padding:8px 12px 12px;">`;
 
-      let rankBadge = '';
-      if (isPendente) {
-        rankCounter++;
-        const isFirst = rankCounter === 1;
-        rankBadge = `
-          <div style="
-            min-width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
-            justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;
-            background:${isFirst ? 'rgba(74,222,128,0.15)' : 'var(--bg-nav)'};
-            color:${isFirst ? 'var(--green)' : 'var(--text-muted)'};
-            border:1px solid ${isFirst ? 'var(--green)' : 'var(--border)'};
-          ">#${rankCounter}</div>
+      let rankCounter = 0;
+      for (const pedido of group) {
+        const pessoa = pedido.pessoa_id ? pessoaMap[pedido.pessoa_id] : null;
+        const familia = pedido.familia_id ? familiaMap[pedido.familia_id] : null;
+        const titulo = familia
+          ? `👨‍👩‍👧 ${escapeHtml(familia.nome)}`
+          : pessoa
+            ? `👤 ${escapeHtml(pessoa.nome)}`
+            : '<em style="color:var(--text-muted);">— sem destinatário —</em>';
+
+        const isPendente = pedido.status === 'pendente';
+
+        let rankBadge = '';
+        if (isPendente) {
+          rankCounter++;
+          const isFirst = rankCounter === 1;
+          rankBadge = `
+            <div style="
+              min-width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+              justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;
+              background:${isFirst ? 'rgba(74,222,128,0.15)' : 'var(--bg-nav)'};
+              color:${isFirst ? 'var(--green)' : 'var(--text-muted)'};
+              border:1px solid ${isFirst ? 'var(--green)' : 'var(--border)'};
+            ">#${rankCounter}</div>
+          `;
+        }
+
+        const statusBadge = isPendente
+          ? '<span class="status-badge pendente">Pendente</span>'
+          : `<span class="status-badge atendido">Atendido em ${formatDateBR(pedido.atendido_em)}</span>`;
+
+        html += `
+          <div class="card pedido-card" style="margin-top:8px;${!isPendente ? 'opacity:0.55;' : ''}">
+            <div style="display:flex;align-items:center;gap:10px;">
+              ${rankBadge}
+              <div style="min-width:0;flex:1;">
+                <div style="font-size:15px;font-weight:600;">${titulo}</div>
+                ${pedido.observacao ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px;">${escapeHtml(pedido.observacao)}</div>` : ''}
+                <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Solicitado em ${formatDateBR(pedido.solicitado_em)}</div>
+                <div style="margin-top:6px;">${statusBadge}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+                ${isPendente ? `<button class="btn-icon" data-atender-pedido="${pedido.id}" title="Marcar atendido" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✅</button>` : ''}
+                <button class="btn-icon" data-edit-pedido="${pedido.id}" title="Editar" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✏️</button>
+                <button class="btn-icon" data-delete-pedido="${pedido.id}" title="Excluir" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">🗑️</button>
+              </div>
+            </div>
+          </div>
         `;
       }
 
-      const statusBadge = isPendente
-        ? '<span class="status-badge pendente">Pendente</span>'
-        : `<span class="status-badge atendido">Atendido em ${formatDateBR(pedido.atendido_em)}</span>`;
-
-      html += `
-        <div class="card pedido-card" style="${!isPendente ? 'opacity:0.55;' : ''}">
-          <div style="display:flex;align-items:center;gap:10px;">
-            ${rankBadge}
-            <div style="min-width:0;flex:1;">
-              <div style="font-size:15px;font-weight:600;">${titulo}</div>
-              ${pedido.observacao ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px;">${escapeHtml(pedido.observacao)}</div>` : ''}
-              <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Solicitado em ${formatDateBR(pedido.solicitado_em)}</div>
-              <div style="margin-top:6px;">${statusBadge}</div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
-              ${isPendente ? `<button class="btn-icon" data-atender-pedido="${pedido.id}" title="Marcar atendido" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✅</button>` : ''}
-              <button class="btn-icon" data-edit-pedido="${pedido.id}" title="Editar" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✏️</button>
-              <button class="btn-icon" data-delete-pedido="${pedido.id}" title="Excluir" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">🗑️</button>
-            </div>
-          </div>
-        </div>
-      `;
+      html += `</div>`;
     }
+
+    html += `</div>`;
   }
 
   content.innerHTML = html;
@@ -162,6 +192,16 @@ function attachEvents() {
   content.querySelectorAll('.filter-pill').forEach(pill => {
     pill.addEventListener('click', () => {
       currentFilter = pill.dataset.filter;
+      expandedGroups = null; // reinicializa padrão para o novo filtro
+      loadPedidos();
+    });
+  });
+
+  content.querySelectorAll('.pedido-group-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const key = header.dataset.group;
+      if (expandedGroups.has(key)) expandedGroups.delete(key);
+      else expandedGroups.add(key);
       loadPedidos();
     });
   });

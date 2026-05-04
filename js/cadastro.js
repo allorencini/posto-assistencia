@@ -242,6 +242,14 @@ function showFamiliaForm(editId = null) {
 
   document.body.appendChild(overlay);
 
+  // Força uppercase em tempo real no campo nome da família
+  const famNomeInput = document.getElementById('form-familia-nome');
+  famNomeInput.addEventListener('input', () => {
+    const pos = famNomeInput.selectionStart;
+    famNomeInput.value = famNomeInput.value.toUpperCase();
+    famNomeInput.setSelectionRange(pos, pos);
+  });
+
   let membros = [];
 
   function renderMembros() {
@@ -312,7 +320,7 @@ function showFamiliaForm(editId = null) {
   document.getElementById('familia-cancel').addEventListener('click', () => overlay.remove());
 
   document.getElementById('familia-save').addEventListener('click', async () => {
-    const nome = document.getElementById('form-familia-nome').value.trim();
+    const nome = document.getElementById('form-familia-nome').value.trim().toUpperCase();
     if (!nome) {
       document.getElementById('form-familia-nome').style.borderColor = 'var(--red)';
       return;
@@ -516,6 +524,14 @@ function showPessoaForm(editId = null) {
 
   document.body.appendChild(overlay);
 
+  // Força uppercase em tempo real no campo nome
+  const nomeInput = document.getElementById('form-nome');
+  nomeInput.addEventListener('input', () => {
+    const pos = nomeInput.selectionStart;
+    nomeInput.value = nomeInput.value.toUpperCase();
+    nomeInput.setSelectionRange(pos, pos);
+  });
+
   // Carregar famílias no select
   getFamilias().then(familias => {
     const sel = document.getElementById('form-pessoa-familia');
@@ -581,7 +597,7 @@ function showPessoaForm(editId = null) {
   });
   document.getElementById('form-cancel').addEventListener('click', () => overlay.remove());
   document.getElementById('form-save').addEventListener('click', async () => {
-    const nome = document.getElementById('form-nome').value.trim();
+    const nome = document.getElementById('form-nome').value.trim().toUpperCase();
     const grupo = document.getElementById('form-grupo').value;
     const telefone = document.getElementById('form-telefone').value.trim();
 
@@ -667,6 +683,14 @@ function showItemForm(editId = null) {
 
   document.body.appendChild(overlay);
 
+  // Força uppercase em tempo real no campo nome do item
+  const itemNomeInput = document.getElementById('form-item-nome');
+  itemNomeInput.addEventListener('input', () => {
+    const pos = itemNomeInput.selectionStart;
+    itemNomeInput.value = itemNomeInput.value.toUpperCase();
+    itemNomeInput.setSelectionRange(pos, pos);
+  });
+
   if (editId) {
     getItem(editId).then(i => {
       if (!i) return;
@@ -680,7 +704,7 @@ function showItemForm(editId = null) {
   });
   document.getElementById('item-cancel').addEventListener('click', () => overlay.remove());
   document.getElementById('item-save').addEventListener('click', async () => {
-    const nome = document.getElementById('form-item-nome').value.trim();
+    const nome = document.getElementById('form-item-nome').value.trim().toUpperCase();
     const categoria = document.getElementById('form-item-categoria').value;
 
     if (!nome) {

@@ -61,9 +61,20 @@ async function init() {
   handleHash();
   if (!window.location.hash) navigateTo('cadastro');
 
-  // Register service worker
+  // Register service worker com auto-update:
+  // Ao abrir o app, força verificação de nova versão. Se uma nova SW ativar
+  // (skipWaiting já está no sw.js), o controllerchange dispara o reload automático.
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
+    const registration = await navigator.serviceWorker.register('/sw.js');
+    registration.update(); // força checagem mesmo dentro do cache TTL de 24h
+
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
   }
 }
 

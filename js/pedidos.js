@@ -5,7 +5,8 @@ import {
 
 const content = document.getElementById('pedidos-content');
 let currentFilter = 'pendente'; // 'todos' | 'pendente' | 'atendido'
-let expandedGroups = null; // null = inicializar na primeira render; Set após isso
+let expandedGroups = null;   // Set de chaves de item — null = reinicializar
+let expandedAtendidos = false; // accordion único de atendidos
 
 function todayStr() {
   const d = new Date();
@@ -32,153 +33,166 @@ async function loadPedidos() {
 }
 
 function renderPedidos(pedidos, pessoaMap, familiaMap) {
-  const filtered = currentFilter === 'todos'
-    ? pedidos
-    : pedidos.filter(p => p.status === currentFilter);
+  const pendentes = pedidos.filter(p => p.status === 'pendente');
+  const atendidos = pedidos.filter(p => p.status === 'atendido');
 
-  const totalPendentes = pedidos.filter(p => p.status === 'pendente').length;
-  const totalAtendidos = pedidos.filter(p => p.status === 'atendido').length;
+  const totalPendentes = pendentes.length;
+  const totalAtendidos = atendidos.length;
 
   let html = `
     <button class="btn btn-primary" id="btn-add-pedido" style="margin-bottom:16px;">
       + NOVO PEDIDO
     </button>
-
     <div class="group-filter">
-      <button class="filter-pill ${currentFilter === 'todos' ? 'active' : ''}" data-filter="todos">Todos (${pedidos.length})</button>
+      <button class="filter-pill ${currentFilter === 'todos'    ? 'active' : ''}" data-filter="todos">Todos (${pedidos.length})</button>
       <button class="filter-pill ${currentFilter === 'pendente' ? 'active' : ''}" data-filter="pendente">Pendentes (${totalPendentes})</button>
       <button class="filter-pill ${currentFilter === 'atendido' ? 'active' : ''}" data-filter="atendido">Atendidos (${totalAtendidos})</button>
     </div>
   `;
 
-  if (filtered.length === 0) {
-    html += `
-      <div class="empty-state">
-        <div class="icon">🎁</div>
-        <p>Nenhum pedido ${currentFilter === 'pendente' ? 'pendente' : currentFilter === 'atendido' ? 'atendido' : 'cadastrado'}.</p>
-      </div>
-    `;
+  if (pedidos.length === 0) {
+    html += `<div class="empty-state"><div class="icon">🎁</div><p>Nenhum pedido cadastrado.</p></div>`;
     content.innerHTML = html;
     attachEvents();
     return;
   }
 
-  // Agrupar por item (normalizado em maiúsculo)
-  const groups = {};
-  for (const pedido of filtered) {
-    const key = (pedido.item || '').toUpperCase().trim();
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(pedido);
-  }
+  // ── Accordions de item (só pendentes) ──────────────────────────────────────
+  const showPendentes = currentFilter !== 'atendido';
 
-  // Dentro de cada grupo: pendentes primeiro (ordenados por data asc = mais antigo = #1),
-  // depois atendidos (ordenados por atendido_em desc)
-  for (const key of Object.keys(groups)) {
-    groups[key].sort((a, b) => {
-      if (a.status === 'pendente' && b.status !== 'pendente') return -1;
-      if (a.status !== 'pendente' && b.status === 'pendente') return 1;
-      if (a.status === 'pendente') {
-        return (a.solicitado_em || '').localeCompare(b.solicitado_em || '');
+  if (showPendentes) {
+    if (pendentes.length === 0) {
+      html += `<div class="empty-state"><div class="icon">✅</div><p>Nenhum pedido pendente.</p></div>`;
+    } else {
+      // Agrupar pendentes por item
+      const groups = {};
+      for (const p of pendentes) {
+        const key = (p.item || '').toUpperCase().trim();
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(p);
       }
-      return (b.atendido_em || b.solicitado_em || '').localeCompare(a.atendido_em || a.solicitado_em || '');
-    });
+      for (const key of Object.keys(groups)) {
+        groups[key].sort((a, b) => (a.solicitado_em || '').localeCompare(b.solicitado_em || ''));
+      }
+      const sortedKeys = Object.keys(groups).sort((a, b) =>
+        groups[b].length !== groups[a].length
+          ? groups[b].length - groups[a].length
+          : a.localeCompare(b)
+      );
+
+      if (expandedGroups === null) {
+        expandedGroups = new Set(sortedKeys); // todos abertos por padrão
+      }
+
+      for (const key of sortedKeys) {
+        const group = groups[key];
+        const isOpen = expandedGroups.has(key);
+        const count = group.length;
+
+        html += `
+          <div class="card" style="margin-top:10px;padding:0;overflow:hidden;">
+            <div class="pedido-group-header" data-group="${escapeHtml(key)}"
+              style="display:flex;justify-content:space-between;align-items:center;
+                     padding:14px 16px;cursor:pointer;gap:10px;">
+              <div style="font-size:16px;font-weight:700;flex:1;">🎁 ${escapeHtml(key)}</div>
+              <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                <span style="font-size:13px;color:var(--green);font-weight:600;">${count} na fila</span>
+                <span style="color:var(--text-muted);font-size:14px;">${isOpen ? '▴' : '▾'}</span>
+              </div>
+            </div>
+        `;
+
+        if (isOpen) {
+          html += `<div style="border-top:1px solid var(--border);padding:8px 12px 12px;">`;
+          let rank = 0;
+          for (const pedido of group) {
+            rank++;
+            const pessoa  = pedido.pessoa_id  ? pessoaMap[pedido.pessoa_id]   : null;
+            const familia = pedido.familia_id  ? familiaMap[pedido.familia_id] : null;
+            const titulo  = familia ? `👨‍👩‍👧 ${escapeHtml(familia.nome)}`
+                          : pessoa  ? `👤 ${escapeHtml(pessoa.nome)}`
+                          : '<em style="color:var(--text-muted);">— sem destinatário —</em>';
+            const isFirst = rank === 1;
+            const rankBadge = `
+              <div style="min-width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+                justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;
+                background:${isFirst ? 'rgba(74,222,128,0.15)' : 'var(--bg-nav)'};
+                color:${isFirst ? 'var(--green)' : 'var(--text-muted)'};
+                border:1px solid ${isFirst ? 'var(--green)' : 'var(--border)'};">#${rank}</div>
+            `;
+            html += `
+              <div class="card pedido-card" style="margin-top:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  ${rankBadge}
+                  <div style="min-width:0;flex:1;">
+                    <div style="font-size:15px;font-weight:600;">${titulo}</div>
+                    ${pedido.observacao ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px;">${escapeHtml(pedido.observacao)}</div>` : ''}
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Solicitado em ${formatDateBR(pedido.solicitado_em)}</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+                    <button class="btn-icon" data-atender-pedido="${pedido.id}" title="Marcar atendido" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✅</button>
+                    <button class="btn-icon" data-edit-pedido="${pedido.id}"    title="Editar"          style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✏️</button>
+                    <button class="btn-icon" data-delete-pedido="${pedido.id}"  title="Excluir"         style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">🗑️</button>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+          html += `</div>`;
+        }
+        html += `</div>`;
+      }
+    }
   }
 
-  // Ordenar grupos: mais pendentes primeiro, depois alfabético
-  const sortedKeys = Object.keys(groups).sort((a, b) => {
-    const aPend = groups[a].filter(p => p.status === 'pendente').length;
-    const bPend = groups[b].filter(p => p.status === 'pendente').length;
-    if (aPend !== bPend) return bPend - aPend;
-    return a.localeCompare(b);
-  });
+  // ── Accordion único de atendidos ───────────────────────────────────────────
+  const showAtendidos = currentFilter !== 'pendente' && atendidos.length > 0;
 
-  // Na primeira render (ou ao trocar de filtro), inicializar estado do accordion:
-  // grupos com pendentes abrem por padrão; só-atendidos fecham
-  if (expandedGroups === null) {
-    expandedGroups = new Set(
-      sortedKeys.filter(k => groups[k].some(p => p.status === 'pendente'))
+  if (showAtendidos) {
+    atendidos.sort((a, b) =>
+      (b.atendido_em || b.solicitado_em || '').localeCompare(a.atendido_em || a.solicitado_em || '')
     );
-  }
-
-  for (const key of sortedKeys) {
-    const group = groups[key];
-    const pendentesGrupo = group.filter(p => p.status === 'pendente').length;
-    const isOpen = expandedGroups.has(key);
-
-    const badge = pendentesGrupo > 0
-      ? `<span style="font-size:13px;color:var(--green);font-weight:600;">${pendentesGrupo} na fila</span>`
-      : `<span style="font-size:13px;color:var(--text-muted);">todos atendidos</span>`;
 
     html += `
       <div class="card" style="margin-top:10px;padding:0;overflow:hidden;">
-        <div class="pedido-group-header" data-group="${escapeHtml(key)}"
+        <div id="btn-toggle-atendidos"
           style="display:flex;justify-content:space-between;align-items:center;
                  padding:14px 16px;cursor:pointer;gap:10px;">
-          <div style="font-size:16px;font-weight:700;flex:1;">🎁 ${escapeHtml(key)}</div>
+          <div style="font-size:16px;font-weight:700;flex:1;">✅ ATENDIDOS</div>
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-            ${badge}
-            <span style="color:var(--text-muted);font-size:14px;">${isOpen ? '▴' : '▾'}</span>
+            <span style="font-size:13px;color:var(--text-muted);">${atendidos.length} item${atendidos.length > 1 ? 'ns' : ''}</span>
+            <span style="color:var(--text-muted);font-size:14px;">${expandedAtendidos ? '▴' : '▾'}</span>
           </div>
         </div>
     `;
 
-    if (isOpen) {
+    if (expandedAtendidos) {
       html += `<div style="border-top:1px solid var(--border);padding:8px 12px 12px;">`;
-
-      let rankCounter = 0;
-      for (const pedido of group) {
-        const pessoa = pedido.pessoa_id ? pessoaMap[pedido.pessoa_id] : null;
-        const familia = pedido.familia_id ? familiaMap[pedido.familia_id] : null;
-        const titulo = familia
-          ? `👨‍👩‍👧 ${escapeHtml(familia.nome)}`
-          : pessoa
-            ? `👤 ${escapeHtml(pessoa.nome)}`
-            : '<em style="color:var(--text-muted);">— sem destinatário —</em>';
-
-        const isPendente = pedido.status === 'pendente';
-
-        let rankBadge = '';
-        if (isPendente) {
-          rankCounter++;
-          const isFirst = rankCounter === 1;
-          rankBadge = `
-            <div style="
-              min-width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
-              justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;
-              background:${isFirst ? 'rgba(74,222,128,0.15)' : 'var(--bg-nav)'};
-              color:${isFirst ? 'var(--green)' : 'var(--text-muted)'};
-              border:1px solid ${isFirst ? 'var(--green)' : 'var(--border)'};
-            ">#${rankCounter}</div>
-          `;
-        }
-
-        const statusBadge = isPendente
-          ? '<span class="status-badge pendente">Pendente</span>'
-          : `<span class="status-badge atendido">Atendido em ${formatDateBR(pedido.atendido_em)}</span>`;
-
+      for (const pedido of atendidos) {
+        const pessoa  = pedido.pessoa_id  ? pessoaMap[pedido.pessoa_id]   : null;
+        const familia = pedido.familia_id  ? familiaMap[pedido.familia_id] : null;
+        const titulo  = familia ? `👨‍👩‍👧 ${escapeHtml(familia.nome)}`
+                      : pessoa  ? `👤 ${escapeHtml(pessoa.nome)}`
+                      : '<em style="color:var(--text-muted);">— sem destinatário —</em>';
         html += `
-          <div class="card pedido-card" style="margin-top:8px;${!isPendente ? 'opacity:0.55;' : ''}">
+          <div class="card pedido-card" style="margin-top:8px;opacity:0.7;">
             <div style="display:flex;align-items:center;gap:10px;">
-              ${rankBadge}
               <div style="min-width:0;flex:1;">
-                <div style="font-size:15px;font-weight:600;">${titulo}</div>
+                <div style="font-size:13px;color:var(--text-muted);margin-bottom:2px;">${titulo}</div>
+                <div style="font-size:15px;font-weight:600;">${escapeHtml(pedido.item || '')}</div>
                 ${pedido.observacao ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px;">${escapeHtml(pedido.observacao)}</div>` : ''}
-                <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Solicitado em ${formatDateBR(pedido.solicitado_em)}</div>
-                <div style="margin-top:6px;">${statusBadge}</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Atendido em ${formatDateBR(pedido.atendido_em)}</div>
               </div>
               <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
-                ${isPendente ? `<button class="btn-icon" data-atender-pedido="${pedido.id}" title="Marcar atendido" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✅</button>` : ''}
-                <button class="btn-icon" data-edit-pedido="${pedido.id}" title="Editar" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✏️</button>
+                <button class="btn-icon" data-edit-pedido="${pedido.id}"   title="Editar"  style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">✏️</button>
                 <button class="btn-icon" data-delete-pedido="${pedido.id}" title="Excluir" style="font-size:20px;background:none;border:none;cursor:pointer;padding:8px;">🗑️</button>
               </div>
             </div>
           </div>
         `;
       }
-
       html += `</div>`;
     }
-
     html += `</div>`;
   }
 
@@ -192,9 +206,15 @@ function attachEvents() {
   content.querySelectorAll('.filter-pill').forEach(pill => {
     pill.addEventListener('click', () => {
       currentFilter = pill.dataset.filter;
-      expandedGroups = null; // reinicializa padrão para o novo filtro
+      expandedGroups = null;
+      expandedAtendidos = false;
       loadPedidos();
     });
+  });
+
+  document.getElementById('btn-toggle-atendidos')?.addEventListener('click', () => {
+    expandedAtendidos = !expandedAtendidos;
+    loadPedidos();
   });
 
   content.querySelectorAll('.pedido-group-header').forEach(header => {

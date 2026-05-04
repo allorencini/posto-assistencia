@@ -123,9 +123,6 @@ function renderChamada(pessoas) {
       `).join('')}
     </div>
 
-    <input type="text" class="search-input" id="search-chamada"
-      placeholder="Buscar por nome..." value="${escapeHtml(currentSearch)}">
-
     <div class="counter">Presentes: <strong>${totalPresent}</strong> / ${totalPeople} cadastrados</div>
   `;
 
@@ -151,7 +148,7 @@ function renderChamada(pessoas) {
         </div>
       `;
       html += `
-        <div class="presence-row">
+        <div class="presence-row" data-nome="${p.nome.toLowerCase()}">
           <div class="presence-info">
             <div class="presence-name">${escapeHtml(p.nome)}</div>
             ${histHtml}
@@ -176,6 +173,23 @@ function renderChamada(pessoas) {
 
   content.innerHTML = html;
   attachChamadaEvents();
+  filterChamada();
+}
+
+function filterChamada() {
+  const term = currentSearch.toLowerCase().trim();
+  content.querySelectorAll('.presence-row[data-nome]').forEach(row => {
+    row.style.display = !term || row.dataset.nome.includes(term) ? '' : 'none';
+  });
+  content.querySelectorAll('.group-label').forEach(label => {
+    let next = label.nextElementSibling;
+    let anyVisible = false;
+    while (next && !next.classList.contains('group-label')) {
+      if (next.classList.contains('presence-row') && next.style.display !== 'none') anyVisible = true;
+      next = next.nextElementSibling;
+    }
+    label.style.display = anyVisible ? '' : 'none';
+  });
 }
 
 function attachChamadaEvents() {
@@ -183,14 +197,9 @@ function attachChamadaEvents() {
   document.getElementById('chamada-date')?.addEventListener('change', (e) => {
     currentDate = e.target.value;
     currentSearch = '';
+    const searchEl = document.getElementById('search-chamada');
+    if (searchEl) searchEl.value = '';
     loadChamada();
-  });
-
-  // Search
-  document.getElementById('search-chamada')?.addEventListener('input', async (e) => {
-    currentSearch = e.target.value;
-    const pessoas = await getPessoas();
-    renderChamada(pessoas);
   });
 
   // Filter pills
@@ -255,7 +264,16 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// Load on page enter
+// Search listener fora do re-render — mantém teclado mobile aberto
+let _chamadaSearchListenerAttached = false;
 window.addEventListener('page-enter', (e) => {
-  if (e.detail.page === 'chamada') loadChamada();
+  if (e.detail.page !== 'chamada') return;
+  if (!_chamadaSearchListenerAttached) {
+    document.getElementById('search-chamada')?.addEventListener('input', (ev) => {
+      currentSearch = ev.target.value;
+      filterChamada();
+    });
+    _chamadaSearchListenerAttached = true;
+  }
+  loadChamada();
 });

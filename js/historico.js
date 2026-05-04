@@ -32,20 +32,9 @@ function escapeHtml(str) {
 }
 
 async function loadHistorico() {
-  const searchFocused = document.activeElement?.id === 'historico-search';
-
   if (currentView === 'por-data') await renderPorData();
   else if (currentView === 'por-pessoa') await renderPorPessoa();
   else await renderCestas();
-
-  // Restaura foco no campo de busca após re-render (re-render recria o input)
-  if (searchFocused) {
-    const el = document.getElementById('historico-search');
-    if (el) {
-      el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
-    }
-  }
 }
 
 // ─── Por Data ────────────────────────────────────────────────────────────────
@@ -58,7 +47,6 @@ async function renderPorData() {
   for (const p of todasPessoas) pessoaMap[p.id] = p;
 
   let html = renderTabs();
-  html += renderSearch();
   html += renderFilterPills();
 
   if (chamadas.length === 0) {
@@ -192,7 +180,6 @@ async function renderPorPessoa() {
   const [pessoas, chamadas] = await Promise.all([getPessoas(), getChamadas()]);
 
   let html = renderTabs();
-  html += renderSearch();
   html += renderFilterPills();
 
   if (pessoas.length === 0) {
@@ -267,7 +254,6 @@ async function renderCestas() {
   const [pessoas, cestas] = await Promise.all([getPessoas(), getCestas()]);
 
   let html = renderTabs();
-  html += renderSearch();
   html += renderFilterPills();
 
   const pessoaMap = {};
@@ -345,14 +331,6 @@ function renderTabs() {
   `;
 }
 
-function renderSearch() {
-  return `
-    <input type="text" class="search-input" id="historico-search"
-      placeholder="Buscar por nome..." value="${escapeHtml(searchTerm)}"
-      style="margin-bottom:4px;">
-  `;
-}
-
 function renderFilterPills() {
   return `
     <div class="group-filter">
@@ -374,12 +352,6 @@ function attachHistoricoEvents() {
       expandedPessoa = null;
       loadHistorico();
     });
-  });
-
-  // Search
-  document.getElementById('historico-search')?.addEventListener('input', (e) => {
-    searchTerm = e.target.value;
-    loadHistorico();
   });
 
   // Filter pills
@@ -510,11 +482,21 @@ function attachHistoricoEvents() {
   });
 }
 
-// Load on page enter
+// Search — listener no input estático do HTML (nunca é re-renderizado)
+let _searchListenerAttached = false;
 window.addEventListener('page-enter', (e) => {
-  if (e.detail.page === 'historico') {
-    editingData = null;
-    editState = {};
-    loadHistorico();
+  if (e.detail.page !== 'historico') return;
+
+  editingData = null;
+  editState = {};
+
+  if (!_searchListenerAttached) {
+    document.getElementById('historico-search')?.addEventListener('input', (ev) => {
+      searchTerm = ev.target.value;
+      loadHistorico();
+    });
+    _searchListenerAttached = true;
   }
+
+  loadHistorico();
 });

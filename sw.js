@@ -1,4 +1,4 @@
-const CACHE_NAME = 'presenca-v15';
+const CACHE_NAME = 'presenca-v16';
 const ASSETS = [
   '/',
   '/index.html',

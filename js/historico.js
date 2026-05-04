@@ -35,6 +35,39 @@ async function loadHistorico() {
   if (currentView === 'por-data') await renderPorData();
   else if (currentView === 'por-pessoa') await renderPorPessoa();
   else await renderCestas();
+  filterHistorico();
+}
+
+// Filtra via display sem re-renderizar — mantém o teclado mobile aberto
+function filterHistorico() {
+  const term = searchTerm.toLowerCase().trim();
+
+  if (currentView === 'por-data') {
+    content.querySelectorAll('.presence-row[data-nome]').forEach(row => {
+      row.style.display = !term || row.dataset.nome.includes(term) ? '' : 'none';
+    });
+    content.querySelectorAll('.presenca-span[data-nome]').forEach(span => {
+      span.style.display = !term || span.dataset.nome.includes(term) ? '' : 'none';
+    });
+  } else if (currentView === 'por-pessoa') {
+    content.querySelectorAll('.card[data-nome]').forEach(card => {
+      card.style.display = !term || card.dataset.nome.includes(term) ? '' : 'none';
+    });
+    // Oculta rótulos de grupo quando todos os cards abaixo estão ocultos
+    content.querySelectorAll('.group-label').forEach(label => {
+      let next = label.nextElementSibling;
+      let anyVisible = false;
+      while (next && !next.classList.contains('group-label')) {
+        if (next.style.display !== 'none') anyVisible = true;
+        next = next.nextElementSibling;
+      }
+      label.style.display = anyVisible ? '' : 'none';
+    });
+  } else {
+    content.querySelectorAll('.cesta-card[data-nome]').forEach(card => {
+      card.style.display = !term || card.dataset.nome.includes(term) ? '' : 'none';
+    });
+  }
 }
 
 // ─── Por Data ────────────────────────────────────────────────────────────────
@@ -101,7 +134,6 @@ async function renderPorData() {
       if (isEditing) {
         const filteredPessoas = todasPessoas
           .filter(p => currentFilter === 'todos' || p.grupo === currentFilter)
-          .filter(p => !searchTerm || p.nome.toLowerCase().includes(searchTerm.toLowerCase()))
           .sort((a, b) => a.nome.localeCompare(b.nome));
 
         if (filteredPessoas.length === 0) {
@@ -111,7 +143,7 @@ async function renderPorData() {
           for (const pessoa of filteredPessoas) {
             const state = editState[pessoa.id] || { presente: false, id: null };
             html += `
-              <div class="presence-row" style="margin-bottom:6px;">
+              <div class="presence-row" data-nome="${pessoa.nome.toLowerCase()}" style="margin-bottom:6px;">
                 <div class="presence-info">
                   <div class="presence-name">${escapeHtml(pessoa.nome)}</div>
                 </div>
@@ -141,19 +173,15 @@ async function renderPorData() {
           </div>
         `;
       } else {
-        const searchFiltered = searchTerm
-          ? filtered.filter(pr => pessoaMap[pr.pessoa_id]?.nome.toLowerCase().includes(searchTerm.toLowerCase()))
-          : filtered;
-
-        if (searchFiltered.length === 0) {
+        if (filtered.length === 0) {
           html += `<p style="color:var(--text-muted);font-size:14px;padding-top:12px;">Nenhum registro encontrado.</p>`;
         } else {
           html += `<div style="display:flex;flex-wrap:wrap;gap:6px;padding-top:10px;">`;
-          for (const pr of searchFiltered) {
+          for (const pr of filtered) {
             const pessoa = pessoaMap[pr.pessoa_id];
             if (!pessoa) continue;
             html += `
-              <span style="
+              <span class="presenca-span" data-nome="${pessoa.nome.toLowerCase()}" style="
                 font-size:13px;padding:4px 10px;border-radius:12px;
                 background:${pr.presente ? 'rgba(74,222,128,0.15)' : 'rgba(239,68,68,0.15)'};
                 color:${pr.presente ? 'var(--green)' : 'var(--red)'};
@@ -194,10 +222,7 @@ async function renderPorPessoa() {
     return;
   }
 
-  let filtered = currentFilter === 'todos' ? pessoas : pessoas.filter(p => p.grupo === currentFilter);
-  if (searchTerm) {
-    filtered = filtered.filter(p => p.nome.toLowerCase().includes(searchTerm.toLowerCase()));
-  }
+  const filtered = currentFilter === 'todos' ? pessoas : pessoas.filter(p => p.grupo === currentFilter);
 
   const grouped = {};
   for (const g of GRUPOS) grouped[g.value] = [];
@@ -224,7 +249,7 @@ async function renderPorPessoa() {
       const colorClass = pct >= 80 ? 'high' : pct >= 50 ? 'mid' : 'low';
 
       html += `
-        <div class="card" style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="card" data-nome="${pessoa.nome.toLowerCase()}" style="display:flex;align-items:center;justify-content:space-between;">
           <div style="font-size:17px;">${escapeHtml(pessoa.nome)}</div>
           <div style="text-align:right;">
             <div class="ranking-count ${colorClass}" style="font-size:16px;">${presentes}/${totalChamadas}</div>
@@ -264,7 +289,6 @@ async function renderCestas() {
     const pessoa = pessoaMap[c.pessoa_id];
     if (!pessoa) continue;
     if (currentFilter !== 'todos' && pessoa.grupo !== currentFilter) continue;
-    if (searchTerm && !pessoa.nome.toLowerCase().includes(searchTerm.toLowerCase())) continue;
     if (!grouped[c.pessoa_id]) grouped[c.pessoa_id] = { pessoa, items: [] };
     grouped[c.pessoa_id].items.push(c);
   }
@@ -292,7 +316,7 @@ async function renderCestas() {
     const isExpanded = expandedPessoa === g.pessoa.id;
 
     html += `
-      <div class="card cesta-card" data-pessoa="${g.pessoa.id}">
+      <div class="card cesta-card" data-nome="${g.pessoa.nome.toLowerCase()}" data-pessoa="${g.pessoa.id}">
         <div class="cesta-header" data-toggle="${g.pessoa.id}">
           <div style="flex:1;min-width:0;">
             <div style="font-size:17px;font-weight:500;">${escapeHtml(g.pessoa.nome)}</div>
@@ -493,7 +517,7 @@ window.addEventListener('page-enter', (e) => {
   if (!_searchListenerAttached) {
     document.getElementById('historico-search')?.addEventListener('input', (ev) => {
       searchTerm = ev.target.value;
-      loadHistorico();
+      filterHistorico(); // filtra no DOM sem re-renderizar, mantém teclado aberto
     });
     _searchListenerAttached = true;
   }

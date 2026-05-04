@@ -10,6 +10,7 @@ let currentFilter = 'todos';
 let currentSearch = '';
 let chamadaState = {}; // { pessoaId: { presente: bool, presencaId: uuid } }
 let currentChamada = null;
+let _chamadaCreating = null; // Promise lock para evitar criação dupla em cliques simultâneos
 let historicoMap = {}; // { pessoaId: ['P'|'F'|'-', ...] } — oldest to newest, last 4 chamadas before currentDate
 
 const GRUPOS = [
@@ -48,6 +49,9 @@ async function loadChamada() {
       chamadaState[p.pessoa_id] = { presente: p.presente, id: p.id };
     }
   }
+
+  // Reset lock ao trocar de data ou recarregar
+  _chamadaCreating = null;
 
   // Initialize missing people as absent
   for (const p of pessoas) {
@@ -203,12 +207,14 @@ function attachChamadaEvents() {
     btn.addEventListener('click', async () => {
       const pessoaId = btn.dataset.pessoa;
       const state = chamadaState[pessoaId];
+
+      // Disable first para evitar duplo clique antes de qualquer await
+      btn.disabled = true;
       state.presente = !state.presente;
 
       // Instant visual feedback
       btn.className = `presence-btn ${state.presente ? 'present' : 'absent'}`;
       btn.textContent = state.presente ? 'PRESENTE' : 'FALTA';
-      btn.disabled = true;
 
       // Update counter
       const totalPresent = Object.values(chamadaState).filter(s => s.presente).length;
@@ -216,14 +222,21 @@ function attachChamadaEvents() {
       const counter = content.querySelector('.counter');
       if (counter) counter.innerHTML = `Presentes: <strong>${totalPresent}</strong> / ${totalPeople} cadastrados`;
 
-      // Ensure chamada record exists before saving presença
+      // Lock compartilhado: se dois toggles simultâneos chegarem aqui antes da chamada
+      // ser criada, apenas uma criação acontece — a outra aguarda a mesma Promise.
       if (!currentChamada) {
-        const existing = await getChamadaByData(currentDate);
-        currentChamada = existing || await saveChamada({ data: currentDate });
+        if (!_chamadaCreating) {
+          _chamadaCreating = getChamadaByData(currentDate).then(existing => {
+            currentChamada = existing || null;
+            if (!currentChamada) return saveChamada({ data: currentDate });
+          }).then(created => {
+            if (created) currentChamada = created;
+          });
+        }
+        await _chamadaCreating;
       }
 
       const presenca = {
-        id: state.id || crypto.randomUUID(),
         chamada_id: currentChamada.id,
         pessoa_id: pessoaId,
         presente: state.presente,

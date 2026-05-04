@@ -155,10 +155,7 @@ export function savePessoa(pessoa) {
   if (!pessoa.criado_em) pessoa.criado_em = new Date().toISOString();
   pessoa.atualizado_em = new Date().toISOString();
   if (pessoa.ativo === undefined) pessoa.ativo = true;
-  return put('pessoas', pessoa).then(() => {
-    addToSyncQueue('pessoas', 'upsert', pessoa);
-    return pessoa;
-  });
+  return atomicUpsert('pessoas', pessoa);
 }
 
 export function deletePessoa(id) {
@@ -166,9 +163,7 @@ export function deletePessoa(id) {
     if (!pessoa) return;
     pessoa.ativo = false;
     pessoa.atualizado_em = new Date().toISOString();
-    return put('pessoas', pessoa).then(() => {
-      addToSyncQueue('pessoas', 'upsert', pessoa);
-    });
+    return atomicUpsert('pessoas', pessoa);
   });
 }
 
@@ -214,21 +209,12 @@ export function getAllPresencas() {
 }
 
 export function savePresenca(presenca) {
-  if (!presenca.id) presenca.id = crypto.randomUUID();
+  // ID determinístico: garante que dois dispositivos criando a presença do mesmo
+  // par (chamada+pessoa) gerem o mesmo ID, evitando duplicatas no IndexedDB após sync.
+  if (!presenca.id) presenca.id = `presenca-${presenca.chamada_id}-${presenca.pessoa_id}`;
   if (!presenca.criado_em) presenca.criado_em = new Date().toISOString();
   presenca.atualizado_em = new Date().toISOString();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['presencas', 'sync_queue'], 'readwrite');
-    transaction.objectStore('presencas').put(presenca);
-    transaction.objectStore('sync_queue').put({
-      table: 'presencas',
-      operation: 'upsert',
-      data: presenca,
-      timestamp: Date.now(),
-    });
-    transaction.oncomplete = () => resolve(presenca);
-    transaction.onerror = () => reject(transaction.error);
-  });
+  return atomicUpsert('presencas', presenca);
 }
 
 export function savePresencasBatch(presencas) {
@@ -273,10 +259,7 @@ export function saveCesta(cesta) {
   if (!cesta.criado_em) cesta.criado_em = new Date().toISOString();
   cesta.atualizado_em = new Date().toISOString();
   if (cesta.ativo === undefined) cesta.ativo = true;
-  return put('cestas', cesta).then(() => {
-    addToSyncQueue('cestas', 'upsert', cesta);
-    return cesta;
-  });
+  return atomicUpsert('cestas', cesta);
 }
 
 export function deleteCesta(id) {
@@ -284,9 +267,7 @@ export function deleteCesta(id) {
     if (!cesta) return;
     cesta.ativo = false;
     cesta.atualizado_em = new Date().toISOString();
-    return put('cestas', cesta).then(() => {
-      addToSyncQueue('cestas', 'upsert', cesta);
-    });
+    return atomicUpsert('cestas', cesta);
   });
 }
 
@@ -305,10 +286,7 @@ export function saveItem(item) {
   item.atualizado_em = new Date().toISOString();
   if (item.ativo === undefined) item.ativo = true;
   item.quantidade = Math.max(0, parseInt(item.quantidade, 10) || 0);
-  return put('itens', item).then(() => {
-    addToSyncQueue('itens', 'upsert', item);
-    return item;
-  });
+  return atomicUpsert('itens', item);
 }
 
 export function updateItemQuantidade(id, novaQtd) {
@@ -316,10 +294,7 @@ export function updateItemQuantidade(id, novaQtd) {
     if (!item) return null;
     item.quantidade = Math.max(0, parseInt(novaQtd, 10) || 0);
     item.atualizado_em = new Date().toISOString();
-    return put('itens', item).then(() => {
-      addToSyncQueue('itens', 'upsert', item);
-      return item;
-    });
+    return atomicUpsert('itens', item);
   });
 }
 
@@ -328,9 +303,7 @@ export function deleteItem(id) {
     if (!item) return;
     item.ativo = false;
     item.atualizado_em = new Date().toISOString();
-    return put('itens', item).then(() => {
-      addToSyncQueue('itens', 'upsert', item);
-    });
+    return atomicUpsert('itens', item);
   });
 }
 
@@ -348,10 +321,7 @@ export function saveFamilia(familia) {
   if (!familia.criado_em) familia.criado_em = new Date().toISOString();
   familia.atualizado_em = new Date().toISOString();
   if (familia.ativo === undefined) familia.ativo = true;
-  return put('familias', familia).then(() => {
-    addToSyncQueue('familias', 'upsert', familia);
-    return familia;
-  });
+  return atomicUpsert('familias', familia);
 }
 
 export function deleteFamilia(id) {
@@ -359,9 +329,7 @@ export function deleteFamilia(id) {
     if (!familia) return;
     familia.ativo = false;
     familia.atualizado_em = new Date().toISOString();
-    return put('familias', familia).then(() => {
-      addToSyncQueue('familias', 'upsert', familia);
-    });
+    return atomicUpsert('familias', familia);
   });
 }
 
@@ -385,10 +353,7 @@ export function savePedido(pedido) {
   if (pedido.ativo === undefined) pedido.ativo = true;
   if (!pedido.status) pedido.status = 'pendente';
   if (!pedido.solicitado_em) pedido.solicitado_em = new Date().toISOString().slice(0, 10);
-  return put('pedidos', pedido).then(() => {
-    addToSyncQueue('pedidos', 'upsert', pedido);
-    return pedido;
-  });
+  return atomicUpsert('pedidos', pedido);
 }
 
 export function deletePedido(id) {
@@ -396,13 +361,28 @@ export function deletePedido(id) {
     if (!pedido) return;
     pedido.ativo = false;
     pedido.atualizado_em = new Date().toISOString();
-    return put('pedidos', pedido).then(() => {
-      addToSyncQueue('pedidos', 'upsert', pedido);
-    });
+    return atomicUpsert('pedidos', pedido);
   });
 }
 
 // === Sync Queue ===
+// Grava dado no store e na sync_queue em uma única transação atômica.
+// Se qualquer um falhar, ambos são revertidos — sem registros locais órfãos.
+function atomicUpsert(storeName, data) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([storeName, 'sync_queue'], 'readwrite');
+    transaction.objectStore(storeName).put(data);
+    transaction.objectStore('sync_queue').put({
+      table: storeName,
+      operation: 'upsert',
+      data,
+      timestamp: Date.now(),
+    });
+    transaction.oncomplete = () => resolve(data);
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
 function addToSyncQueue(table, operation, data) {
   return put('sync_queue', {
     table,
@@ -430,13 +410,23 @@ export function clearAllSyncQueue() {
 }
 
 // === Bulk import (for sync from server) ===
-// Upsert-only — sem store.clear() para preservar registros locais ainda não sincronizados.
+// Upsert condicional: só sobrescreve se a versão do servidor for igual ou mais nova
+// que a versão local. Protege dados locais não sincronizados de serem apagados pelo pull.
 export function bulkPut(storeName, items) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
     for (const item of items) {
-      store.put(item);
+      const getReq = store.get(item.id);
+      getReq.onsuccess = () => {
+        const local = getReq.result;
+        const localTs = local?.atualizado_em ?? '';
+        const serverTs = item.atualizado_em ?? '';
+        // Só sobrescreve se não existe localmente ou se o servidor tem versão mais nova/igual
+        if (!local || serverTs >= localTs) {
+          store.put(item);
+        }
+      };
     }
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);

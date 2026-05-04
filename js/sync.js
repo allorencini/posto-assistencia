@@ -56,7 +56,7 @@ async function pullChanges() {
 
   for (const table of ['familias', 'pessoas', 'chamadas', 'presencas', 'cestas', 'itens', 'pedidos']) {
     try {
-      const { data, error } = await sb.from(table).select('*');
+      const { data, error } = await sb.from(table).select('*').range(0, 4999);
       if (error) {
         console.warn(`Pull error for ${table}:`, error.message);
         continue;

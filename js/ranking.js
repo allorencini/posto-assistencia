@@ -251,7 +251,7 @@ function renderRankingRow(position, pessoa, totalChamadas) {
         ${btnCesta}
         <button class="btn-icon" data-hide-pessoa="${pessoa.id}" data-hide-nome="${escapeHtml(pessoa.nome)}"
           title="Excluir do ranking"
-          style="font-size:18px;background:none;border:none;cursor:pointer;padding:6px;color:var(--text-muted);margin-left:auto;">🙈</button>
+          style="font-size:18px;background:none;border:none;cursor:pointer;padding:6px;color:var(--red);margin-left:auto;font-weight:700;">✕</button>
       </div>
     </div>
   `;

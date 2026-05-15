@@ -5,11 +5,12 @@ let currentFilter = 'todos';
 let dateFrom = '';
 let dateTo = '';
 
+// Ordem de exibição das seções
 const GRUPOS = [
-  { value: 'evangelizacao', label: 'Evangelização', plural: 'Evangelização' },
-  { value: 'mocidade', label: 'Mocidade', plural: 'Mocidade' },
-  { value: 'adulto', label: 'Adulto', plural: 'Adultos' },
-  { value: 'gestante', label: 'Gestante', plural: 'Gestantes' },
+  { value: 'adulto', plural: 'Adultos', emoji: '🧑' },
+  { value: 'gestante', plural: 'Gestantes', emoji: '🤰' },
+  { value: 'mocidade', plural: 'Mocidade', emoji: '🧒' },
+  { value: 'evangelizacao', plural: 'Evangelização', emoji: '👶' },
 ];
 
 function todayStr() {
@@ -46,14 +47,12 @@ async function loadRanking() {
   const totalChamadas = chamadasInRange.length;
   const hoje = todayStr();
 
-  // Presença individual
   const presencaCount = {};
   for (const p of allPresencas) {
     if (!chamadaIds.has(p.chamada_id) || !p.presente) continue;
     presencaCount[p.pessoa_id] = (presencaCount[p.pessoa_id] || 0) + 1;
   }
 
-  // Cestas individuais
   const cestasInfo = {};
   for (const c of cestas) {
     const info = cestasInfo[c.pessoa_id] || { total: 0, datas: new Set() };
@@ -62,7 +61,6 @@ async function loadRanking() {
     cestasInfo[c.pessoa_id] = info;
   }
 
-  // Membros por família
   const familyMembers = {};
   for (const p of pessoas) {
     if (!p.familia_id) continue;
@@ -70,13 +68,11 @@ async function loadRanking() {
     familyMembers[p.familia_id].push(p);
   }
 
-  const entries = [];
-
-  // Entradas de família
+  // Famílias (uma seção própria)
+  const familiaEntries = [];
   for (const familia of familias) {
     const members = familyMembers[familia.id];
     if (!members || members.length === 0) continue;
-
     if (currentFilter !== 'todos') {
       const hasMatch = members.some(m => m.grupo === currentFilter);
       if (!hasMatch) continue;
@@ -96,7 +92,7 @@ async function loadRanking() {
       if (memberIds.has(c.pessoa_id)) famDatas.add(c.data);
     }
 
-    entries.push({
+    familiaEntries.push({
       type: 'familia',
       id: familia.id,
       nome: familia.nome,
@@ -107,16 +103,17 @@ async function loadRanking() {
       recebeuHoje: famDatas.has(hoje),
     });
   }
+  familiaEntries.sort((a, b) => b.pct - a.pct || a.nome.localeCompare(b.nome));
 
-  // Entradas individuais (sem família)
+  // Individuais (sem família) agrupados por grupo
   const pessoasSemFamilia = pessoas.filter(p => !p.familia_id);
-  const filteredIndividuais = currentFilter === 'todos'
-    ? pessoasSemFamilia
-    : pessoasSemFamilia.filter(p => p.grupo === currentFilter);
+  const grupoEntries = {};
+  for (const g of GRUPOS) grupoEntries[g.value] = [];
 
-  for (const p of filteredIndividuais) {
+  for (const p of pessoasSemFamilia) {
+    if (!grupoEntries[p.grupo]) continue;
     const info = cestasInfo[p.id] || { total: 0, datas: new Set() };
-    entries.push({
+    grupoEntries[p.grupo].push({
       type: 'individual',
       id: p.id,
       nome: p.nome,
@@ -126,12 +123,14 @@ async function loadRanking() {
       recebeuHoje: info.datas.has(hoje),
     });
   }
+  for (const g of GRUPOS) {
+    grupoEntries[g.value].sort((a, b) => b.pct - a.pct || a.nome.localeCompare(b.nome));
+  }
 
-  entries.sort((a, b) => b.pct - a.pct || a.nome.localeCompare(b.nome));
-  renderRanking(entries, totalChamadas);
+  renderRanking({ familiaEntries, grupoEntries }, totalChamadas);
 }
 
-function renderRanking(entries, totalChamadas) {
+function renderRanking({ familiaEntries, grupoEntries }, totalChamadas) {
   let html = `
     <div class="date-picker">
       <div style="flex:1;position:relative;">
@@ -158,7 +157,8 @@ function renderRanking(entries, totalChamadas) {
     <div class="counter">${totalChamadas} semana${totalChamadas !== 1 ? 's' : ''} no periodo</div>
   `;
 
-  if (entries.length === 0) {
+  const totalAll = familiaEntries.length + GRUPOS.reduce((s, g) => s + grupoEntries[g.value].length, 0);
+  if (totalAll === 0) {
     html += `
       <div class="empty-state">
         <div class="icon">🏆</div>
@@ -170,11 +170,24 @@ function renderRanking(entries, totalChamadas) {
     return;
   }
 
-  entries.forEach((entry, i) => {
-    html += entry.type === 'familia'
-      ? renderFamiliaRow(i + 1, entry, totalChamadas)
-      : renderRankingRow(i + 1, entry, totalChamadas);
-  });
+  // Seção Famílias (sempre visível se há famílias, independente do filtro de grupo)
+  if (familiaEntries.length > 0) {
+    html += `<div class="group-label" style="margin-top:18px;">👨‍👩‍👧 Famílias (${familiaEntries.length})</div>`;
+    familiaEntries.forEach((entry, i) => {
+      html += renderFamiliaRow(i + 1, entry, totalChamadas);
+    });
+  }
+
+  // Seções por grupo
+  for (const g of GRUPOS) {
+    if (currentFilter !== 'todos' && currentFilter !== g.value) continue;
+    const list = grupoEntries[g.value];
+    if (list.length === 0) continue;
+    html += `<div class="group-label" style="margin-top:18px;">${g.emoji} ${g.plural} (${list.length})</div>`;
+    list.forEach((entry, i) => {
+      html += renderRankingRow(i + 1, entry, totalChamadas);
+    });
+  }
 
   content.innerHTML = html;
   attachRankingEvents();

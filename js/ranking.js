@@ -1,4 +1,4 @@
-import { getPessoas, getChamadas, getAllPresencas, getCestas, saveCesta, getFamilias } from './db.js';
+import { getPessoas, getPessoa, savePessoa, getChamadas, getAllPresencas, getCestas, saveCesta, getFamilias } from './db.js';
 
 const content = document.getElementById('ranking-content');
 let currentFilter = 'todos';
@@ -105,8 +105,8 @@ async function loadRanking() {
   }
   familiaEntries.sort((a, b) => b.pct - a.pct || a.nome.localeCompare(b.nome));
 
-  // Individuais (sem família) agrupados por grupo
-  const pessoasSemFamilia = pessoas.filter(p => !p.familia_id);
+  // Individuais (sem família, não excluídos do ranking) agrupados por grupo
+  const pessoasSemFamilia = pessoas.filter(p => !p.familia_id && p.excluir_ranking !== true);
   const grupoEntries = {};
   for (const g of GRUPOS) grupoEntries[g.value] = [];
 
@@ -249,6 +249,9 @@ function renderRankingRow(position, pessoa, totalChamadas) {
       <div class="ranking-row-bottom">
         ${cestaBadge}
         ${btnCesta}
+        <button class="btn-icon" data-hide-pessoa="${pessoa.id}" data-hide-nome="${escapeHtml(pessoa.nome)}"
+          title="Excluir do ranking"
+          style="font-size:18px;background:none;border:none;cursor:pointer;padding:6px;color:var(--text-muted);margin-left:auto;">🙈</button>
       </div>
     </div>
   `;
@@ -285,6 +288,14 @@ function attachRankingEvents() {
     });
   });
 
+  content.querySelectorAll('[data-hide-pessoa]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pessoaId = btn.dataset.hidePessoa;
+      const pessoaNome = btn.dataset.hideNome;
+      confirmHidePessoa(pessoaId, pessoaNome);
+    });
+  });
+
   content.querySelectorAll('.btn-cesta-familia[data-familia]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const familiaId = btn.dataset.familia;
@@ -303,6 +314,34 @@ function attachRankingEvents() {
       window.showToast(`Cesta entregue para família ${familiaNome}!`);
       setTimeout(() => loadRanking(), 600);
     });
+  });
+}
+
+function confirmHidePessoa(id, nome) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h2>Excluir do ranking</h2>
+      <p style="color:var(--text-secondary);margin-bottom:8px;">Remover <strong>${escapeHtml(nome)}</strong> da lista de ranking?</p>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:8px;">Presença e cestas continuam normalmente. Pra reverter, edite a pessoa no cadastro e desmarque "Excluir do ranking".</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="hide-cancel">CANCELAR</button>
+        <button class="btn btn-primary" id="hide-confirm">EXCLUIR DO RANKING</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.getElementById('hide-cancel').addEventListener('click', () => overlay.remove());
+  document.getElementById('hide-confirm').addEventListener('click', async () => {
+    const pessoa = await getPessoa(id);
+    if (!pessoa) { overlay.remove(); return; }
+    pessoa.excluir_ranking = true;
+    await savePessoa(pessoa);
+    overlay.remove();
+    window.showToast(`${nome} removida do ranking.`);
+    loadRanking();
   });
 }
 

@@ -515,6 +515,14 @@ function showPessoaForm(editId = null) {
         </select>
       </div>
 
+      <div class="form-section-label">Ranking</div>
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="form-excluir-ranking"> Excluir do ranking
+        </label>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Não aparece na lista de ranking (ex: crianças da evangelização). Presença e cestas continuam funcionando normalmente.</div>
+      </div>
+
       <div class="modal-actions">
         <button class="btn btn-secondary" id="form-cancel">CANCELAR</button>
         <button class="btn btn-primary" id="form-save">SALVAR</button>
@@ -589,6 +597,7 @@ function showPessoaForm(editId = null) {
         document.getElementById('form-visita-obs').value = p.visita_obs || '';
       }
       document.getElementById('form-pessoa-familia').value = p.familia_id || '';
+      document.getElementById('form-excluir-ranking').checked = p.excluir_ranking === true;
     });
   }
 
@@ -623,6 +632,7 @@ function showPessoaForm(editId = null) {
       : null;
     const familiaId = document.getElementById('form-pessoa-familia').value;
     pessoa.familia_id = familiaId || null;
+    pessoa.excluir_ranking = document.getElementById('form-excluir-ranking').checked;
 
     await savePessoa(pessoa);
     overlay.remove();

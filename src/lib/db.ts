@@ -1,7 +1,14 @@
-import Dexie, { type Table } from 'dexie';
 import type {
-  Pessoa, Familia, Chamada, Presenca, Cesta, Item, Pedido, SyncQueueItem,
+  Cesta,
+  Chamada,
+  Familia,
+  Item,
+  Pedido,
+  Pessoa,
+  Presenca,
+  SyncQueueItem,
 } from '@/types/domain';
+import Dexie, { type Table } from 'dexie';
 
 export class PresencaDB extends Dexie {
   pessoas!: Table<Pessoa, string>;

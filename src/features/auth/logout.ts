@@ -1,6 +1,6 @@
+import { db } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
-import { db } from '@/lib/db';
 
 export async function logout() {
   try {

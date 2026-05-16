@@ -1,6 +1,6 @@
+import type { SyncQueueItem } from '@/types/domain';
 import { db } from './db';
 import { supabase } from './supabase';
-import type { SyncQueueItem } from '@/types/domain';
 
 let inProgress = false;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -37,11 +37,12 @@ export async function runSync(): Promise<void> {
           const { error } = await supabase.from(item.table).delete().eq('id', item.data.id);
           if (error) throw error;
         } else {
-          const onConflict = item.table === 'presencas'
-            ? 'chamada_id,pessoa_id'
-            : item.table === 'chamadas'
-            ? 'data'
-            : 'id';
+          const onConflict =
+            item.table === 'presencas'
+              ? 'chamada_id,pessoa_id'
+              : item.table === 'chamadas'
+                ? 'data'
+                : 'id';
           const { error } = await supabase.from(item.table).upsert(item.data, { onConflict });
           if (error) throw error;
         }
@@ -63,16 +64,22 @@ export async function runSync(): Promise<void> {
 
 async function pullChanges(): Promise<void> {
   const tables: SyncQueueItem['table'][] = [
-    'familias', 'pessoas', 'chamadas', 'presencas', 'cestas', 'itens', 'pedidos',
+    'familias',
+    'pessoas',
+    'chamadas',
+    'presencas',
+    'cestas',
+    'itens',
+    'pedidos',
   ];
 
   for (const tableName of tables) {
     const { data, error } = await supabase.from(tableName).select('*');
     if (error || !data) continue;
-    const table = (db as any)[tableName];
+    const table = (db as unknown as Record<string, any>)[tableName];
     if (!table) continue;
     await db.transaction('rw', table, async () => {
-      for (const row of data) {
+      for (const row of data as any[]) {
         const local = await table.get(row.id);
         const localTs = local?.atualizado_em ?? '';
         if (!local || row.atualizado_em >= localTs) {

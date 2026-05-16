@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from './db';
 
 describe('db (Dexie)', () => {
@@ -9,12 +9,25 @@ describe('db (Dexie)', () => {
 
   it('puts and gets pessoa', async () => {
     await db.pessoas.put({
-      id: 'p1', nome: 'TEST', grupo: 'adulto', familia_id: null,
-      telefone: null, rua: null, numero: null, complemento: null,
-      bairro: null, cep: null, visitada: false, apta_cesta: null,
-      visita_obs: null, excluir_ranking: false, ativo: true,
-      anonimizado_em: null, anonimizado_por: null,
-      criado_em: '2026-05-15T00:00:00Z', atualizado_em: '2026-05-15T00:00:00Z',
+      id: 'p1',
+      nome: 'TEST',
+      grupo: 'adulto',
+      familia_id: null,
+      telefone: null,
+      rua: null,
+      numero: null,
+      complemento: null,
+      bairro: null,
+      cep: null,
+      visitada: false,
+      apta_cesta: null,
+      visita_obs: null,
+      excluir_ranking: false,
+      ativo: true,
+      anonimizado_em: null,
+      anonimizado_por: null,
+      criado_em: '2026-05-15T00:00:00Z',
+      atualizado_em: '2026-05-15T00:00:00Z',
     });
     const found = await db.pessoas.get('p1');
     expect(found?.nome).toBe('TEST');

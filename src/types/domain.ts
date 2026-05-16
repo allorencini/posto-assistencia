@@ -83,7 +83,15 @@ export interface Pedido {
 
 export interface SyncQueueItem {
   id?: number;
-  table: 'pessoas' | 'familias' | 'chamadas' | 'presencas' | 'cestas' | 'itens' | 'pedidos' | 'pessoa_consents';
+  table:
+    | 'pessoas'
+    | 'familias'
+    | 'chamadas'
+    | 'presencas'
+    | 'cestas'
+    | 'itens'
+    | 'pedidos'
+    | 'pessoa_consents';
   operation: 'upsert' | 'delete';
   data: any;
   user_id: string;

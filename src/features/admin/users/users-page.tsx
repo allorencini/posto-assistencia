@@ -1,5 +1,6 @@
 import { EmptyState } from '@/components/empty-state';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/features/auth/useAuth';
 import { useAppUsers, useToggleUserAtivo } from '@/hooks/use-app-users';
 import { KeyRound, Plus, UserCheck, UserX } from 'lucide-react';
 import { useState } from 'react';
@@ -10,6 +11,7 @@ import { UserForm } from './user-form';
 export function UsersPage() {
   const { data: users = [] } = useAppUsers();
   const toggle = useToggleUserAtivo();
+  const currentUserId = useAuth((s) => s.user?.id);
   const [formOpen, setFormOpen] = useState(false);
   const [resetUser, setResetUser] = useState<{ id: string; nome: string } | null>(null);
 
@@ -51,6 +53,8 @@ export function UsersPage() {
                 <Button
                   size="icon"
                   variant="ghost"
+                  disabled={u.id === currentUserId}
+                  title={u.id === currentUserId ? 'Não pode desativar a si mesmo' : undefined}
                   onClick={async () => {
                     try {
                       await toggle.mutateAsync({ id: u.id, ativo: !u.ativo });

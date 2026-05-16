@@ -41,7 +41,7 @@ export function LoginPage() {
       return;
     }
     useAuth.getState().setSession(data.user, appUser.papel as Papel);
-    navigate('/chamada', { replace: true });
+    navigate('/cadastro', { replace: true });
   };
 
   return (

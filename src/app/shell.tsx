@@ -16,8 +16,8 @@ import {
 import { NavLink, Outlet } from 'react-router-dom';
 
 const tabs = [
-  { to: '/chamada', label: 'Chamada', icon: CheckSquare, role: undefined },
   { to: '/cadastro', label: 'Cadastros', icon: Users, role: undefined },
+  { to: '/chamada', label: 'Chamada', icon: CheckSquare, role: undefined },
   { to: '/historico', label: 'Histórico', icon: History, role: undefined },
   { to: '/ranking', label: 'Ranking', icon: Trophy, role: undefined },
   { to: '/estoque', label: 'Estoque', icon: Package, role: undefined },

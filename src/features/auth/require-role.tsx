@@ -21,7 +21,7 @@ export function RequireRole({ role, children }: Props) {
   if (role) {
     const allowed = Array.isArray(role) ? role : [role];
     if (!allowed.includes(papel)) {
-      return <Navigate to="/chamada" replace />;
+      return <Navigate to="/cadastro" replace />;
     }
   }
 

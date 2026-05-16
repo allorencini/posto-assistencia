@@ -23,9 +23,9 @@ const router = createBrowserRouter([
       </RequireRole>
     ),
     children: [
-      { index: true, element: <ChamadaPage /> },
-      { path: 'chamada', element: <ChamadaPage /> },
+      { index: true, element: <CadastroPage /> },
       { path: 'cadastro', element: <CadastroPage /> },
+      { path: 'chamada', element: <ChamadaPage /> },
       { path: 'historico', element: <HistoricoPage /> },
       { path: 'ranking', element: <RankingPage /> },
       { path: 'estoque', element: <EstoquePage /> },

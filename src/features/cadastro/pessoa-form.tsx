@@ -44,7 +44,7 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
   const [pendingTermId, setPendingTermId] = useState<string | null>(null);
 
   const {
-    register, handleSubmit, control, reset, watch, setValue,
+    register, handleSubmit, control, reset, setValue,
     formState: { errors, isSubmitting },
   } = useForm<PessoaInput>({
     resolver: zodResolver(PessoaInputSchema),

@@ -3,8 +3,16 @@ import { z } from 'npm:zod@3';
 
 const Schema = z.object({ pessoa_id: z.string().uuid() });
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Max-Age': '86400',
+};
+
 Deno.serve(async (req) => {
-  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
 
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -12,28 +20,44 @@ Deno.serve(async (req) => {
   );
 
   const auth = req.headers.get('Authorization')?.replace('Bearer ', '');
-  if (!auth) return new Response('Missing auth', { status: 401 });
+  if (!auth) return new Response('Missing auth', { status: 401, headers: CORS_HEADERS });
 
-  const { data: { user } } = await supabaseAdmin.auth.getUser(auth);
-  if (!user) return new Response('Invalid token', { status: 401 });
+  const {
+    data: { user },
+  } = await supabaseAdmin.auth.getUser(auth);
+  if (!user) return new Response('Invalid token', { status: 401, headers: CORS_HEADERS });
 
   const { data: callerApp } = await supabaseAdmin
-    .from('app_users').select('papel').eq('id', user.id).single();
-  if (callerApp?.papel !== 'admin') return new Response('Forbidden', { status: 403 });
+    .from('app_users')
+    .select('papel')
+    .eq('id', user.id)
+    .single();
+  if (callerApp?.papel !== 'admin') return new Response('Forbidden', { status: 403, headers: CORS_HEADERS });
 
   const parsed = Schema.safeParse(await req.json());
   if (!parsed.success) {
-    return new Response(JSON.stringify({ error: parsed.error.issues }), { status: 400 });
+    return new Response(JSON.stringify({ error: parsed.error.issues }), {
+      status: 400,
+      headers: { ...CORS_HEADERS, 'content-type': 'application/json' },
+    });
   }
 
   const { pessoa_id } = parsed.data;
 
   const [pessoa, familia, presencas, cestas, pedidos, consents] = await Promise.all([
     supabaseAdmin.from('pessoas').select('*').eq('id', pessoa_id).single(),
-    supabaseAdmin.from('pessoas').select('familia_id').eq('id', pessoa_id).single()
+    supabaseAdmin
+      .from('pessoas')
+      .select('familia_id')
+      .eq('id', pessoa_id)
+      .single()
       .then(async ({ data }) => {
         if (!data?.familia_id) return null;
-        const { data: f } = await supabaseAdmin.from('familias').select('*').eq('id', data.familia_id).single();
+        const { data: f } = await supabaseAdmin
+          .from('familias')
+          .select('*')
+          .eq('id', data.familia_id)
+          .single();
         return f;
       }),
     supabaseAdmin.from('presencas').select('*').eq('pessoa_id', pessoa_id),
@@ -42,7 +66,7 @@ Deno.serve(async (req) => {
     supabaseAdmin.from('pessoa_consents').select('*').eq('pessoa_id', pessoa_id),
   ]);
 
-  if (!pessoa.data) return new Response('Not found', { status: 404 });
+  if (!pessoa.data) return new Response('Not found', { status: 404, headers: CORS_HEADERS });
 
   const payload = {
     exportado_em: new Date().toISOString(),
@@ -75,6 +99,7 @@ Deno.serve(async (req) => {
 
   return new Response(JSON.stringify(payload, null, 2), {
     headers: {
+      ...CORS_HEADERS,
       'content-type': 'application/json',
       'content-disposition': `attachment; filename="pessoa-${pessoa_id}.json"`,
     },

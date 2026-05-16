@@ -14,8 +14,18 @@ const Schema = z.object({
   senha_temporaria: z.string().min(8),
 });
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Max-Age': '86400',
+};
+
 Deno.serve(async (req) => {
-  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
 
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -23,11 +33,11 @@ Deno.serve(async (req) => {
   );
 
   const auth = req.headers.get('Authorization')?.replace('Bearer ', '');
-  if (!auth) return new Response('Missing auth', { status: 401 });
+  if (!auth) return new Response('Missing auth', { status: 401, headers: CORS_HEADERS });
 
-  const userResult = await supabaseAdmin.auth.getUser(auth);
-  const user = userResult.data.user;
-  if (userResult.error || !user) return new Response('Invalid token', { status: 401 });
+  const userRes = await supabaseAdmin.auth.getUser(auth);
+  const user = userRes.data.user;
+  if (userRes.error || !user) return new Response('Invalid token', { status: 401, headers: CORS_HEADERS });
 
   const callerResp = await supabaseAdmin
     .from('app_users')
@@ -35,13 +45,15 @@ Deno.serve(async (req) => {
     .eq('id', user.id)
     .single();
   if (callerResp.data?.papel !== 'admin') {
-    return new Response('Forbidden: not admin', { status: 403 });
+    return new Response('Forbidden: not admin', { status: 403, headers: CORS_HEADERS });
   }
 
-  const body = await req.json();
-  const parsed = Schema.safeParse(body);
+  const parsed = Schema.safeParse(await req.json());
   if (!parsed.success) {
-    return new Response(JSON.stringify({ error: parsed.error.issues }), { status: 400 });
+    return new Response(JSON.stringify({ error: parsed.error.issues }), {
+      status: 400,
+      headers: { ...CORS_HEADERS, 'content-type': 'application/json' },
+    });
   }
   const { email, username, nome, papel, senha_temporaria } = parsed.data;
 
@@ -51,7 +63,10 @@ Deno.serve(async (req) => {
     .ilike('username', username)
     .maybeSingle();
   if (existing.data) {
-    return new Response(JSON.stringify({ error: 'username_already_exists' }), { status: 400 });
+    return new Response(JSON.stringify({ error: 'username_already_exists' }), {
+      status: 400,
+      headers: { ...CORS_HEADERS, 'content-type': 'application/json' },
+    });
   }
 
   const createRes = await supabaseAdmin.auth.admin.createUser({
@@ -60,7 +75,10 @@ Deno.serve(async (req) => {
     email_confirm: true,
   });
   if (createRes.error || !createRes.data.user) {
-    return new Response(JSON.stringify({ error: createRes.error?.message }), { status: 400 });
+    return new Response(JSON.stringify({ error: createRes.error?.message }), {
+      status: 400,
+      headers: { ...CORS_HEADERS, 'content-type': 'application/json' },
+    });
   }
 
   const insertRes = await supabaseAdmin.from('app_users').insert({
@@ -73,10 +91,13 @@ Deno.serve(async (req) => {
 
   if (insertRes.error) {
     await supabaseAdmin.auth.admin.deleteUser(createRes.data.user.id);
-    return new Response(JSON.stringify({ error: insertRes.error.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: insertRes.error.message }), {
+      status: 500,
+      headers: { ...CORS_HEADERS, 'content-type': 'application/json' },
+    });
   }
 
   return new Response(JSON.stringify({ id: createRes.data.user.id, email, username, nome, papel }), {
-    headers: { 'content-type': 'application/json' },
+    headers: { ...CORS_HEADERS, 'content-type': 'application/json' },
   });
 });

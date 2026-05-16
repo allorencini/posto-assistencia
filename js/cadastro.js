@@ -520,7 +520,7 @@ function showPessoaForm(editId = null) {
         <label class="checkbox-label">
           <input type="checkbox" id="form-excluir-ranking"> Excluir do ranking
         </label>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Não aparece na lista de ranking (ex: crianças da evangelização). Presença e cestas continuam funcionando normalmente.</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Não aparece na lista de ranking. Presença e cestas continuam funcionando normalmente.</div>
       </div>
 
       <div class="modal-actions">

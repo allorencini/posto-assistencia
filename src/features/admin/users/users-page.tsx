@@ -34,6 +34,7 @@ export function UsersPage() {
               <div className="min-w-0 flex-1">
                 <div className="truncate font-medium">{u.nome}</div>
                 <div className="text-xs text-[var(--color-text-muted)]">
+                  {u.username && `@${u.username} · `}
                   {u.papel} · {u.ativo ? 'ativo' : 'inativo'}
                   {u.ultimo_login_em && ` · último login ${u.ultimo_login_em.slice(0, 10)}`}
                 </div>

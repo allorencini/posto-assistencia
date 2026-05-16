@@ -8,7 +8,7 @@ export function useAppUsers() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('app_users')
-        .select('id, nome, papel, ativo, criado_em, ultimo_login_em')
+        .select('id, nome, username, papel, ativo, criado_em, ultimo_login_em')
         .order('criado_em', { ascending: false });
       if (error) throw error;
       return data ?? [];

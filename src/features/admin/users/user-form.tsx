@@ -37,7 +37,7 @@ export function UserForm({ open, onOpenChange }: Props) {
     formState: { errors, isSubmitting },
   } = useForm<CreateUserInput>({
     resolver: zodResolver(CreateUserSchema),
-    defaultValues: { email: '', nome: '', papel: 'operador', senha_temporaria: '' },
+    defaultValues: { email: '', username: '', nome: '', papel: 'operador', senha_temporaria: '' },
   });
 
   const onSubmit = async (input: CreateUserInput) => {
@@ -64,6 +64,16 @@ export function UserForm({ open, onOpenChange }: Props) {
             {errors.nome && (
               <p className="text-sm text-[var(--color-red)]">{errors.nome.message}</p>
             )}
+          </div>
+          <div>
+            <Label htmlFor="username">Usuário (login) *</Label>
+            <Input id="username" {...register('username')} autoComplete="off" placeholder="ex: maria.silva" />
+            {errors.username && (
+              <p className="text-sm text-[var(--color-red)]">{errors.username.message}</p>
+            )}
+            <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+              Letras, números, ponto, hífen ou underline. Usuário poderá logar com isso ou com o email.
+            </p>
           </div>
           <div>
             <Label htmlFor="email">Email *</Label>

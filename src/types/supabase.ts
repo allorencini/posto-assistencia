@@ -17,6 +17,7 @@ export type Database = {
           nome: string;
           papel: string;
           ultimo_login_em: string | null;
+          username: string | null;
         };
         Insert: {
           ativo?: boolean;
@@ -26,6 +27,7 @@ export type Database = {
           nome: string;
           papel: string;
           ultimo_login_em?: string | null;
+          username?: string | null;
         };
         Update: {
           ativo?: boolean;
@@ -35,6 +37,7 @@ export type Database = {
           nome?: string;
           papel?: string;
           ultimo_login_em?: string | null;
+          username?: string | null;
         };
         Relationships: [
           {

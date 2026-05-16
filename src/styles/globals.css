@@ -15,7 +15,9 @@
 }
 
 @layer base {
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+  }
   body {
     background: var(--color-bg);
     color: var(--color-text);
@@ -23,5 +25,10 @@
     margin: 0;
     -webkit-tap-highlight-color: transparent;
   }
-  html, body, #root { height: 100%; overscroll-behavior: none; }
+  html,
+  body,
+  #root {
+    height: 100%;
+    overscroll-behavior: none;
+  }
 }

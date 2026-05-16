@@ -1,8 +1,13 @@
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useActiveConsentTerm } from '@/hooks/use-consent-term';
 import { useState } from 'react';
 
@@ -17,12 +22,19 @@ export function ConsentModal({ open, onOpenChange, onAccept }: Props) {
   const [checked, setChecked] = useState(false);
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) setChecked(false); onOpenChange(v); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) setChecked(false);
+        onOpenChange(v);
+      }}
+    >
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Captura de consentimento — LGPD</DialogTitle>
           <DialogDescription>
-            Leia o termo abaixo para o titular dos dados. Marque a confirmação após a leitura e consentimento verbal.
+            Leia o termo abaixo para o titular dos dados. Marque a confirmação após a leitura e
+            consentimento verbal.
           </DialogDescription>
         </DialogHeader>
 
@@ -37,20 +49,25 @@ export function ConsentModal({ open, onOpenChange, onAccept }: Props) {
               <p>{term.texto}</p>
             </div>
 
-            <label className="flex items-start gap-2 text-sm">
+            <label htmlFor="consent-check" className="flex items-start gap-2 text-sm">
               <Checkbox
                 checked={checked}
                 onCheckedChange={(v) => setChecked(v === true)}
                 id="consent-check"
                 className="mt-1"
               />
-              <span>Li o termo acima ao titular dos dados e ele(a) consentiu verbalmente com o tratamento.</span>
+              <span>
+                Li o termo acima ao titular dos dados e ele(a) consentiu verbalmente com o
+                tratamento.
+              </span>
             </label>
           </>
         )}
 
         <DialogFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
           <Button
             disabled={!checked || !term}
             onClick={() => {

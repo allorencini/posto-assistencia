@@ -1,13 +1,13 @@
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { FilterPills } from '@/components/filter-pills';
-import { PessoaList } from './pessoa-list';
-import { PessoaForm } from './pessoa-form';
-import { FamiliaList } from './familia-list';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { useState } from 'react';
 import { FamiliaForm } from './familia-form';
-import { ItemList } from './item-list';
+import { FamiliaList } from './familia-list';
 import { ItemForm } from './item-form';
+import { ItemList } from './item-list';
+import { PessoaForm } from './pessoa-form';
+import { PessoaList } from './pessoa-list';
 
 type Tab = 'pessoas' | 'familias' | 'itens';
 
@@ -21,16 +21,25 @@ export function CadastroPage() {
   const [itemId, setItemId] = useState<string | null>(null);
 
   const onAdd = () => {
-    if (tab === 'pessoas') { setPessoaId(null); setPessoaOpen(true); }
-    else if (tab === 'familias') { setFamiliaId(null); setFamiliaOpen(true); }
-    else { setItemId(null); setItemOpen(true); }
+    if (tab === 'pessoas') {
+      setPessoaId(null);
+      setPessoaOpen(true);
+    } else if (tab === 'familias') {
+      setFamiliaId(null);
+      setFamiliaOpen(true);
+    } else {
+      setItemId(null);
+      setItemOpen(true);
+    }
   };
 
   return (
     <div className="space-y-4 p-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">Cadastros</h1>
-        <Button size="icon" onClick={onAdd} aria-label="Adicionar"><Plus className="size-5" /></Button>
+        <Button size="icon" onClick={onAdd} aria-label="Adicionar">
+          <Plus className="size-5" />
+        </Button>
       </div>
 
       <FilterPills
@@ -43,9 +52,30 @@ export function CadastroPage() {
         ]}
       />
 
-      {tab === 'pessoas' && <PessoaList onEdit={(id) => { setPessoaId(id); setPessoaOpen(true); }} />}
-      {tab === 'familias' && <FamiliaList onEdit={(id) => { setFamiliaId(id); setFamiliaOpen(true); }} />}
-      {tab === 'itens' && <ItemList onEdit={(id) => { setItemId(id); setItemOpen(true); }} />}
+      {tab === 'pessoas' && (
+        <PessoaList
+          onEdit={(id) => {
+            setPessoaId(id);
+            setPessoaOpen(true);
+          }}
+        />
+      )}
+      {tab === 'familias' && (
+        <FamiliaList
+          onEdit={(id) => {
+            setFamiliaId(id);
+            setFamiliaOpen(true);
+          }}
+        />
+      )}
+      {tab === 'itens' && (
+        <ItemList
+          onEdit={(id) => {
+            setItemId(id);
+            setItemOpen(true);
+          }}
+        />
+      )}
 
       <PessoaForm open={pessoaOpen} onOpenChange={setPessoaOpen} pessoaId={pessoaId} />
       <FamiliaForm open={familiaOpen} onOpenChange={setFamiliaOpen} familiaId={familiaId} />

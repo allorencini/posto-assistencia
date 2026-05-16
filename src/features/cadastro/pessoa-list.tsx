@@ -1,15 +1,15 @@
-import { useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Pencil, Trash2 } from 'lucide-react';
-import { SearchInput } from '@/components/search-input';
-import { FilterPills } from '@/components/filter-pills';
-import { EmptyState } from '@/components/empty-state';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { usePessoas, useDeletePessoa } from '@/hooks/use-pessoas';
+import { EmptyState } from '@/components/empty-state';
+import { FilterPills } from '@/components/filter-pills';
+import { SearchInput } from '@/components/search-input';
+import { Button } from '@/components/ui/button';
 import { useFamilias } from '@/hooks/use-familias';
-import { toast } from 'sonner';
-import type { Pessoa } from '@/types/domain';
+import { useDeletePessoa, usePessoas } from '@/hooks/use-pessoas';
 import { GRUPOS } from '@/schemas/pessoa';
+import type { Pessoa } from '@/types/domain';
+import { Pencil, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 const GRUPO_LABEL = {
   evangelizacao: 'Evangelização',
@@ -44,7 +44,9 @@ export function PessoaList({ onEdit }: Props) {
       return true;
     });
     const map: Record<string, Pessoa[]> = {};
-    GRUPOS.forEach((g) => { map[g] = []; });
+    GRUPOS.forEach((g) => {
+      map[g] = [];
+    });
     filtered.forEach((p) => {
       if (map[p.grupo]) map[p.grupo].push(p);
     });
@@ -80,7 +82,10 @@ export function PessoaList({ onEdit }: Props) {
                 </h3>
                 <ul className="space-y-1">
                   {list.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2">
+                    <li
+                      key={p.id}
+                      className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2"
+                    >
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium">{p.nome}</div>
                         {p.familia_id && (
@@ -90,10 +95,20 @@ export function PessoaList({ onEdit }: Props) {
                         )}
                       </div>
                       <div className="flex shrink-0 gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => onEdit(p.id)} aria-label="Editar">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => onEdit(p.id)}
+                          aria-label="Editar"
+                        >
                           <Pencil className="size-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" onClick={() => setToDelete(p)} aria-label="Excluir">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setToDelete(p)}
+                          aria-label="Excluir"
+                        >
                           <Trash2 className="size-4 text-[var(--color-red)]" />
                         </Button>
                       </div>
@@ -108,7 +123,9 @@ export function PessoaList({ onEdit }: Props) {
 
       <ConfirmDialog
         open={!!toDelete}
-        onOpenChange={(v) => { if (!v) setToDelete(null); }}
+        onOpenChange={(v) => {
+          if (!v) setToDelete(null);
+        }}
         title={`Excluir ${toDelete?.nome ?? ''}?`}
         description="A pessoa será marcada como inativa. Histórico de presença e cestas preservado."
         variant="destructive"

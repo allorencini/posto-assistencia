@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Pencil, Trash2 } from 'lucide-react';
-import { SearchInput } from '@/components/search-input';
-import { EmptyState } from '@/components/empty-state';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { useFamilias, useDeleteFamilia } from '@/hooks/use-familias';
+import { EmptyState } from '@/components/empty-state';
+import { SearchInput } from '@/components/search-input';
+import { Button } from '@/components/ui/button';
+import { useDeleteFamilia, useFamilias } from '@/hooks/use-familias';
 import { usePessoas } from '@/hooks/use-pessoas';
-import { toast } from 'sonner';
 import type { Familia } from '@/types/domain';
+import { Pencil, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 interface Props {
   onEdit: (id: string) => void;
@@ -43,16 +43,31 @@ export function FamiliaList({ onEdit }: Props) {
       ) : (
         <ul className="space-y-1">
           {filtered.map((f) => (
-            <li key={f.id} className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2">
+            <li
+              key={f.id}
+              className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2"
+            >
               <div className="min-w-0 flex-1">
                 <div className="truncate font-medium">{f.nome}</div>
-                <div className="text-xs text-[var(--color-text-muted)]">{memberCount[f.id] ?? 0} membros</div>
+                <div className="text-xs text-[var(--color-text-muted)]">
+                  {memberCount[f.id] ?? 0} membros
+                </div>
               </div>
               <div className="flex shrink-0 gap-1">
-                <Button size="icon" variant="ghost" onClick={() => onEdit(f.id)} aria-label="Editar">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => onEdit(f.id)}
+                  aria-label="Editar"
+                >
                   <Pencil className="size-4" />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => setToDelete(f)} aria-label="Excluir">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setToDelete(f)}
+                  aria-label="Excluir"
+                >
                   <Trash2 className="size-4 text-[var(--color-red)]" />
                 </Button>
               </div>
@@ -63,7 +78,9 @@ export function FamiliaList({ onEdit }: Props) {
 
       <ConfirmDialog
         open={!!toDelete}
-        onOpenChange={(v) => { if (!v) setToDelete(null); }}
+        onOpenChange={(v) => {
+          if (!v) setToDelete(null);
+        }}
         title={`Excluir família ${toDelete?.nome ?? ''}?`}
         description="Os membros ficarão sem família. Histórico preservado."
         variant="destructive"

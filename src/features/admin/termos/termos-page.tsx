@@ -1,14 +1,18 @@
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { EmptyState } from '@/components/empty-state';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import { EmptyState } from '@/components/empty-state';
-import { toast } from 'sonner';
 import { useConsentTerms, useCreateConsentTerm } from '@/hooks/use-consent-terms';
+import { Plus } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export function TermosPage() {
   const { data: terms = [] } = useConsentTerms();
@@ -18,8 +22,14 @@ export function TermosPage() {
   const [texto, setTexto] = useState('');
 
   const onSubmit = async () => {
-    if (versao.trim().length < 3) { toast.error('Versão obrigatória'); return; }
-    if (texto.trim().length < 100) { toast.error('Texto deve ter mínimo 100 caracteres'); return; }
+    if (versao.trim().length < 3) {
+      toast.error('Versão obrigatória');
+      return;
+    }
+    if (texto.trim().length < 100) {
+      toast.error('Texto deve ter mínimo 100 caracteres');
+      return;
+    }
     try {
       await create.mutateAsync({ versao: versao.trim(), texto: texto.trim() });
       toast.success('Termo criado e marcado como ativo. Versão anterior desativada.');
@@ -35,7 +45,9 @@ export function TermosPage() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Termos de consentimento</h2>
-        <Button size="icon" onClick={() => setOpen(true)} aria-label="Novo termo"><Plus className="size-5" /></Button>
+        <Button size="icon" onClick={() => setOpen(true)} aria-label="Novo termo">
+          <Plus className="size-5" />
+        </Button>
       </div>
 
       {terms.length === 0 ? (
@@ -43,12 +55,21 @@ export function TermosPage() {
       ) : (
         <ul className="space-y-2">
           {terms.map((t) => (
-            <li key={t.id} className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3">
+            <li
+              key={t.id}
+              className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
+            >
               <div className="flex items-center justify-between">
                 <div className="font-medium">{t.versao}</div>
-                {t.ativo && <span className="rounded bg-[var(--color-green)] px-2 py-0.5 text-xs text-black">ATIVO</span>}
+                {t.ativo && (
+                  <span className="rounded bg-[var(--color-green)] px-2 py-0.5 text-xs text-black">
+                    ATIVO
+                  </span>
+                )}
               </div>
-              <p className="mt-2 max-h-24 overflow-y-auto text-xs text-[var(--color-text-muted)]">{t.texto}</p>
+              <p className="mt-2 max-h-24 overflow-y-auto text-xs text-[var(--color-text-muted)]">
+                {t.texto}
+              </p>
             </li>
           ))}
         </ul>
@@ -56,7 +77,9 @@ export function TermosPage() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Novo termo de consentimento</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Novo termo de consentimento</DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
             <div>
               <Label htmlFor="versao">Versão (ex: 2026-06-01-v2)</Label>
@@ -75,8 +98,12 @@ export function TermosPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={onSubmit} disabled={create.isPending}>{create.isPending ? 'Salvando...' : 'Criar e ativar'}</Button>
+            <Button variant="secondary" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={onSubmit} disabled={create.isPending}>
+              {create.isPending ? 'Salvando...' : 'Criar e ativar'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

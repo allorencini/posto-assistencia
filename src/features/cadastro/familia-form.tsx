@@ -1,18 +1,22 @@
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
+import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SearchInput } from '@/components/search-input';
-import { toast } from 'sonner';
-import { X } from 'lucide-react';
-import { FamiliaInputSchema, type FamiliaInput } from '@/schemas/familia';
-import { useSaveFamilia, useFamilia } from '@/hooks/use-familias';
+import { useFamilia, useSaveFamilia } from '@/hooks/use-familias';
 import { usePessoas, useSavePessoa } from '@/hooks/use-pessoas';
+import { type FamiliaInput, FamiliaInputSchema } from '@/schemas/familia';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 interface Props {
   open: boolean;
@@ -27,7 +31,10 @@ export function FamiliaForm({ open, onOpenChange, familiaId }: Props) {
   const savePessoa = useSavePessoa();
 
   const {
-    register, handleSubmit, reset, setValue,
+    register,
+    handleSubmit,
+    reset,
+    setValue,
     formState: { errors, isSubmitting },
     watch,
   } = useForm<FamiliaInput>({
@@ -54,9 +61,10 @@ export function FamiliaForm({ open, onOpenChange, familiaId }: Props) {
   const candidates = (() => {
     const norm = search.trim().toLowerCase();
     return pessoas
-      .filter((p) =>
-        !membros.find((m) => m.id === p.id) &&
-        (norm === '' || p.nome.toLowerCase().includes(norm))
+      .filter(
+        (p) =>
+          !membros.find((m) => m.id === p.id) &&
+          (norm === '' || p.nome.toLowerCase().includes(norm)),
       )
       .slice(0, 8);
   })();
@@ -103,7 +111,9 @@ export function FamiliaForm({ open, onOpenChange, familiaId }: Props) {
           <div>
             <Label htmlFor="nome">Nome *</Label>
             <Input id="nome" {...register('nome')} autoComplete="off" />
-            {errors.nome && <p className="text-sm text-[var(--color-red)]">{errors.nome.message}</p>}
+            {errors.nome && (
+              <p className="text-sm text-[var(--color-red)]">{errors.nome.message}</p>
+            )}
           </div>
 
           <div>
@@ -130,13 +140,21 @@ export function FamiliaForm({ open, onOpenChange, familiaId }: Props) {
 
             <ul className="mt-2 space-y-1">
               {membros.map((m) => (
-                <li key={m.id} className="flex items-center justify-between rounded border border-[var(--color-border)] bg-[var(--color-bg-card)] px-2 py-1 text-sm">
+                <li
+                  key={m.id}
+                  className="flex items-center justify-between rounded border border-[var(--color-border)] bg-[var(--color-bg-card)] px-2 py-1 text-sm"
+                >
                   <span>{m.nome}</span>
                   <Button
                     type="button"
                     size="icon"
                     variant="ghost"
-                    onClick={() => setValue('membros', membros.filter((x) => x.id !== m.id))}
+                    onClick={() =>
+                      setValue(
+                        'membros',
+                        membros.filter((x) => x.id !== m.id),
+                      )
+                    }
                     aria-label="Remover"
                   >
                     <X className="size-4" />
@@ -147,7 +165,9 @@ export function FamiliaForm({ open, onOpenChange, familiaId }: Props) {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Salvando...' : 'Salvar'}
             </Button>

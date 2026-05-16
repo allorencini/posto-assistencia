@@ -1,18 +1,26 @@
-import { useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
+import { useItem, useSaveItem } from '@/hooks/use-itens';
+import { CATEGORIAS, type ItemInput, ItemInputSchema } from '@/schemas/item';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { ItemInputSchema, type ItemInput, CATEGORIAS } from '@/schemas/item';
-import { useSaveItem, useItem } from '@/hooks/use-itens';
 
 interface Props {
   open: boolean;
@@ -20,10 +28,10 @@ interface Props {
   itemId?: string | null;
 }
 
-const CATEGORIA_LABEL: Record<typeof CATEGORIAS[number], string> = {
+const CATEGORIA_LABEL: Record<(typeof CATEGORIAS)[number], string> = {
   'alimento-doacao': 'Alimento (doação)',
   'alimento-interno': 'Alimento (interno)',
-  'limpeza': 'Limpeza',
+  limpeza: 'Limpeza',
 };
 
 export function ItemForm({ open, onOpenChange, itemId }: Props) {
@@ -31,7 +39,10 @@ export function ItemForm({ open, onOpenChange, itemId }: Props) {
   const saveItem = useSaveItem();
 
   const {
-    register, handleSubmit, control, reset,
+    register,
+    handleSubmit,
+    control,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<ItemInput>({
     resolver: zodResolver(ItemInputSchema),
@@ -41,7 +52,11 @@ export function ItemForm({ open, onOpenChange, itemId }: Props) {
   useEffect(() => {
     if (!open) return;
     if (existing) {
-      reset({ nome: existing.nome, categoria: existing.categoria, quantidade: existing.quantidade });
+      reset({
+        nome: existing.nome,
+        categoria: existing.categoria,
+        quantidade: existing.quantidade,
+      });
     } else {
       reset({ nome: '', categoria: 'alimento-doacao', quantidade: 0 });
     }
@@ -73,7 +88,9 @@ export function ItemForm({ open, onOpenChange, itemId }: Props) {
           <div>
             <Label htmlFor="nome">Nome *</Label>
             <Input id="nome" {...register('nome')} autoComplete="off" />
-            {errors.nome && <p className="text-sm text-[var(--color-red)]">{errors.nome.message}</p>}
+            {errors.nome && (
+              <p className="text-sm text-[var(--color-red)]">{errors.nome.message}</p>
+            )}
           </div>
 
           <div>
@@ -83,10 +100,14 @@ export function ItemForm({ open, onOpenChange, itemId }: Props) {
               name="categoria"
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {CATEGORIAS.map((c) => (
-                      <SelectItem key={c} value={c}>{CATEGORIA_LABEL[c]}</SelectItem>
+                      <SelectItem key={c} value={c}>
+                        {CATEGORIA_LABEL[c]}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -100,8 +121,12 @@ export function ItemForm({ open, onOpenChange, itemId }: Props) {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Salvando...' : 'Salvar'}</Button>
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Salvando...' : 'Salvar'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

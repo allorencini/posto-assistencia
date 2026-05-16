@@ -1,18 +1,22 @@
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
+import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SearchInput } from '@/components/search-input';
-import { toast } from 'sonner';
-import { PedidoInputSchema, type PedidoInput } from '@/schemas/pedido';
-import { useSavePedido, usePedido } from '@/hooks/use-pedidos';
-import { usePessoas } from '@/hooks/use-pessoas';
 import { useFamilias } from '@/hooks/use-familias';
+import { usePedido, useSavePedido } from '@/hooks/use-pedidos';
+import { usePessoas } from '@/hooks/use-pessoas';
+import { type PedidoInput, PedidoInputSchema } from '@/schemas/pedido';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 interface Props {
   open: boolean;
@@ -30,7 +34,11 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
   const [destSearch, setDestSearch] = useState('');
 
   const {
-    register, handleSubmit, reset, watch, setValue,
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<PedidoInput>({
     resolver: zodResolver(PedidoInputSchema),
@@ -69,7 +77,8 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
 
   const selectedName = (() => {
     if (destTipo === 'pessoa' && pessoa_id) return pessoas.find((p) => p.id === pessoa_id)?.nome;
-    if (destTipo === 'familia' && familia_id) return familias.find((f) => f.id === familia_id)?.nome;
+    if (destTipo === 'familia' && familia_id)
+      return familias.find((f) => f.id === familia_id)?.nome;
     return null;
   })();
 
@@ -105,14 +114,24 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
                 type="button"
                 size="sm"
                 variant={destTipo === 'pessoa' ? 'default' : 'secondary'}
-                onClick={() => { setDestTipo('pessoa'); setValue('familia_id', null); }}
-              >Pessoa</Button>
+                onClick={() => {
+                  setDestTipo('pessoa');
+                  setValue('familia_id', null);
+                }}
+              >
+                Pessoa
+              </Button>
               <Button
                 type="button"
                 size="sm"
                 variant={destTipo === 'familia' ? 'default' : 'secondary'}
-                onClick={() => { setDestTipo('familia'); setValue('pessoa_id', null); }}
-              >Família</Button>
+                onClick={() => {
+                  setDestTipo('familia');
+                  setValue('pessoa_id', null);
+                }}
+              >
+                Família
+              </Button>
             </div>
 
             {selectedName ? (
@@ -125,7 +144,9 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
                     if (destTipo === 'pessoa') setValue('pessoa_id', null);
                     else setValue('familia_id', null);
                   }}
-                >trocar</button>
+                >
+                  trocar
+                </button>
               </div>
             ) : (
               <>
@@ -147,20 +168,31 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
                             else setValue('familia_id', c.id);
                             setDestSearch('');
                           }}
-                        >{c.nome}</button>
+                        >
+                          {c.nome}
+                        </button>
                       </li>
                     ))}
                   </ul>
                 )}
               </>
             )}
-            {errors.pessoa_id && <p className="text-sm text-[var(--color-red)]">{errors.pessoa_id.message}</p>}
+            {errors.pessoa_id && (
+              <p className="text-sm text-[var(--color-red)]">{errors.pessoa_id.message}</p>
+            )}
           </div>
 
           <div>
             <Label htmlFor="item">Item *</Label>
-            <Input id="item" {...register('item')} autoComplete="off" placeholder="Geladeira, fogão..." />
-            {errors.item && <p className="text-sm text-[var(--color-red)]">{errors.item.message}</p>}
+            <Input
+              id="item"
+              {...register('item')}
+              autoComplete="off"
+              placeholder="Geladeira, fogão..."
+            />
+            {errors.item && (
+              <p className="text-sm text-[var(--color-red)]">{errors.item.message}</p>
+            )}
           </div>
 
           <div>
@@ -174,8 +206,12 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Salvando...' : 'Salvar'}</Button>
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Salvando...' : 'Salvar'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

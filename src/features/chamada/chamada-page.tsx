@@ -1,13 +1,13 @@
-import { useMemo, useState, useEffect } from 'react';
-import { SearchInput } from '@/components/search-input';
-import { FilterPills } from '@/components/filter-pills';
 import { EmptyState } from '@/components/empty-state';
+import { FilterPills } from '@/components/filter-pills';
+import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { usePessoas } from '@/hooks/use-pessoas';
 import { useGetOrCreateChamada } from '@/hooks/use-chamada';
+import { usePessoas } from '@/hooks/use-pessoas';
 import { usePresencasByChamada, useSavePresenca } from '@/hooks/use-presencas';
 import { GRUPOS } from '@/schemas/pessoa';
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 const GRUPO_LABEL = {
   evangelizacao: 'Evangelização',
@@ -29,10 +29,18 @@ export function ChamadaPage() {
   const [chamadaId, setChamadaId] = useState<string | null>(null);
   const { data: presencas = [] } = usePresencasByChamada(chamadaId);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: getOrCreate is a stable mutation reference
   useEffect(() => {
     let cancelled = false;
-    getOrCreate.mutateAsync(today).then((c) => { if (!cancelled) setChamadaId(c.id); }).catch(() => {});
-    return () => { cancelled = true; };
+    getOrCreate
+      .mutateAsync(today)
+      .then((c) => {
+        if (!cancelled) setChamadaId(c.id);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [today]);
 
   const [search, setSearch] = useState('');
@@ -52,8 +60,12 @@ export function ChamadaPage() {
       return true;
     });
     const grouped: Record<string, typeof pessoas> = {};
-    GRUPOS.forEach((g) => { grouped[g] = []; });
-    list.forEach((p) => { if (grouped[p.grupo]) grouped[p.grupo].push(p); });
+    GRUPOS.forEach((g) => {
+      grouped[g] = [];
+    });
+    list.forEach((p) => {
+      if (grouped[p.grupo]) grouped[p.grupo].push(p);
+    });
     GRUPOS.forEach((g) => grouped[g].sort((a, b) => a.nome.localeCompare(b.nome)));
     return grouped;
   }, [pessoas, search, grupoFilter]);
@@ -109,7 +121,10 @@ export function ChamadaPage() {
                   {list.map((p) => {
                     const isPresent = presentMap.get(p.id) ?? false;
                     return (
-                      <li key={p.id} className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2">
+                      <li
+                        key={p.id}
+                        className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2"
+                      >
                         <div className="truncate">{p.nome}</div>
                         <Button
                           size="sm"

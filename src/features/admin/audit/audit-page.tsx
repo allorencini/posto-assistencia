@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { useAuditLog } from '@/hooks/use-audit-log';
-import { useAppUsers } from '@/hooks/use-app-users';
-import { FilterPills } from '@/components/filter-pills';
 import { EmptyState } from '@/components/empty-state';
+import { FilterPills } from '@/components/filter-pills';
 import { Input } from '@/components/ui/input';
+import { useAppUsers } from '@/hooks/use-app-users';
+import { useAuditLog } from '@/hooks/use-audit-log';
+import { useState } from 'react';
 
 const TABELAS = ['pessoas', 'familias', 'presencas', 'cestas', 'pedidos', 'app_users'];
 
@@ -43,13 +43,24 @@ export function AuditPage() {
       ) : (
         <ul className="space-y-1">
           {logs.map((l) => (
-            <li key={l.id} className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3 text-sm">
+            <li
+              key={l.id}
+              className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3 text-sm"
+            >
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs">{l.ocorrido_em.replace('T', ' ').slice(0, 19)}</span>
-                <span className="rounded bg-[var(--color-bg-nav)] px-2 py-0.5 text-xs">{l.operacao}</span>
+                <span className="font-mono text-xs">
+                  {l.ocorrido_em.replace('T', ' ').slice(0, 19)}
+                </span>
+                <span className="rounded bg-[var(--color-bg-nav)] px-2 py-0.5 text-xs">
+                  {l.operacao}
+                </span>
                 <span className="text-[var(--color-text-muted)]">{l.tabela}</span>
-                <span className="font-mono text-xs text-[var(--color-text-muted)]">{l.registro_id.slice(0, 8)}</span>
-                <span className="text-xs text-[var(--color-text-muted)]">por {l.usuario_id ? (userMap.get(l.usuario_id) ?? '?') : '—'}</span>
+                <span className="font-mono text-xs text-[var(--color-text-muted)]">
+                  {l.registro_id.slice(0, 8)}
+                </span>
+                <span className="text-xs text-[var(--color-text-muted)]">
+                  por {l.usuario_id ? (userMap.get(l.usuario_id) ?? '?') : '—'}
+                </span>
               </div>
             </li>
           ))}

@@ -1,14 +1,14 @@
-import { useMemo, useState } from 'react';
-import { Plus, Check, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/empty-state';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { toast } from 'sonner';
-import { usePedidos, useAtenderPedido, useDeletePedido } from '@/hooks/use-pedidos';
-import { usePessoas } from '@/hooks/use-pessoas';
+import { EmptyState } from '@/components/empty-state';
+import { Button } from '@/components/ui/button';
 import { useFamilias } from '@/hooks/use-familias';
-import { PedidoForm } from './pedido-form';
+import { useAtenderPedido, useDeletePedido, usePedidos } from '@/hooks/use-pedidos';
+import { usePessoas } from '@/hooks/use-pessoas';
 import type { Pedido } from '@/types/domain';
+import { Check, ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { PedidoForm } from './pedido-form';
 
 export function PedidosPage() {
   const { data: pedidos = [] } = usePedidos();
@@ -39,12 +39,18 @@ export function PedidosPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Pedido | null>(null);
 
-  const destOf = (p: Pedido) => p.pessoa_id ? pessoaMap.get(p.pessoa_id) : p.familia_id ? `${familiaMap.get(p.familia_id)} (família)` : '?';
+  const destOf = (p: Pedido) =>
+    p.pessoa_id
+      ? pessoaMap.get(p.pessoa_id)
+      : p.familia_id
+        ? `${familiaMap.get(p.familia_id)} (família)`
+        : '?';
 
   const toggle = (key: string) => {
     setOpen((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
@@ -53,7 +59,16 @@ export function PedidosPage() {
     <div className="space-y-4 p-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">Pedidos</h1>
-        <Button size="icon" onClick={() => { setEditId(null); setFormOpen(true); }} aria-label="Adicionar"><Plus className="size-5" /></Button>
+        <Button
+          size="icon"
+          onClick={() => {
+            setEditId(null);
+            setFormOpen(true);
+          }}
+          aria-label="Adicionar"
+        >
+          <Plus className="size-5" />
+        </Button>
       </div>
 
       {byItem.length === 0 ? (
@@ -63,23 +78,34 @@ export function PedidosPage() {
           {byItem.map(([item, list]) => {
             const isOpen = open.has(item);
             return (
-              <li key={item} className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)]">
+              <li
+                key={item}
+                className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)]"
+              >
                 <button
                   type="button"
                   className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
                   onClick={() => toggle(item)}
                 >
                   <span className="flex items-center gap-2">
-                    {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                    {isOpen ? (
+                      <ChevronDown className="size-4" />
+                    ) : (
+                      <ChevronRight className="size-4" />
+                    )}
                     <span className="font-medium">{item}</span>
                     <span className="text-xs text-[var(--color-text-muted)]">({list.length})</span>
                   </span>
                 </button>
                 {isOpen && (
                   <ul className="border-t border-[var(--color-border)]">
-                    {list.sort((a, b) => a.solicitado_em.localeCompare(b.solicitado_em))
+                    {list
+                      .sort((a, b) => a.solicitado_em.localeCompare(b.solicitado_em))
                       .map((p) => (
-                        <li key={p.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                        <li
+                          key={p.id}
+                          className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                        >
                           <div className="min-w-0 flex-1">
                             <div className="truncate">{destOf(p)}</div>
                             <div className="text-xs text-[var(--color-text-muted)]">
@@ -88,13 +114,33 @@ export function PedidosPage() {
                             </div>
                           </div>
                           <div className="flex shrink-0 gap-1">
-                            <Button size="icon" variant="ghost" onClick={() => atender.mutateAsync(p.id).then(() => toast.success('Atendido'))} aria-label="Marcar atendido">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() =>
+                                atender.mutateAsync(p.id).then(() => toast.success('Atendido'))
+                              }
+                              aria-label="Marcar atendido"
+                            >
                               <Check className="size-4 text-[var(--color-green)]" />
                             </Button>
-                            <Button size="icon" variant="ghost" onClick={() => { setEditId(p.id); setFormOpen(true); }} aria-label="Editar">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditId(p.id);
+                                setFormOpen(true);
+                              }}
+                              aria-label="Editar"
+                            >
                               <Pencil className="size-4" />
                             </Button>
-                            <Button size="icon" variant="ghost" onClick={() => setToDelete(p)} aria-label="Excluir">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setToDelete(p)}
+                              aria-label="Excluir"
+                            >
                               <Trash2 className="size-4 text-[var(--color-red)]" />
                             </Button>
                           </div>
@@ -116,21 +162,38 @@ export function PedidosPage() {
             onClick={() => setOpenAtendidos(!openAtendidos)}
           >
             <span className="flex items-center gap-2">
-              {openAtendidos ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+              {openAtendidos ? (
+                <ChevronDown className="size-4" />
+              ) : (
+                <ChevronRight className="size-4" />
+              )}
               <span className="font-medium">Atendidos</span>
               <span className="text-xs text-[var(--color-text-muted)]">({atendidos.length})</span>
             </span>
           </button>
           {openAtendidos && (
             <ul className="border-t border-[var(--color-border)]">
-              {atendidos.sort((a, b) => (b.atendido_em ?? '').localeCompare(a.atendido_em ?? ''))
+              {atendidos
+                .sort((a, b) => (b.atendido_em ?? '').localeCompare(a.atendido_em ?? ''))
                 .map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <li
+                    key={p.id}
+                    className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                  >
                     <div className="min-w-0 flex-1">
-                      <div className="truncate">{p.item} → {destOf(p)}</div>
-                      <div className="text-xs text-[var(--color-text-muted)]">Atendido {p.atendido_em}</div>
+                      <div className="truncate">
+                        {p.item} → {destOf(p)}
+                      </div>
+                      <div className="text-xs text-[var(--color-text-muted)]">
+                        Atendido {p.atendido_em}
+                      </div>
                     </div>
-                    <Button size="icon" variant="ghost" onClick={() => setToDelete(p)} aria-label="Excluir">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setToDelete(p)}
+                      aria-label="Excluir"
+                    >
                       <Trash2 className="size-4 text-[var(--color-red)]" />
                     </Button>
                   </li>
@@ -143,7 +206,9 @@ export function PedidosPage() {
       <PedidoForm open={formOpen} onOpenChange={setFormOpen} pedidoId={editId} />
       <ConfirmDialog
         open={!!toDelete}
-        onOpenChange={(v) => { if (!v) setToDelete(null); }}
+        onOpenChange={(v) => {
+          if (!v) setToDelete(null);
+        }}
         title="Excluir pedido?"
         variant="destructive"
         confirmLabel="Excluir"

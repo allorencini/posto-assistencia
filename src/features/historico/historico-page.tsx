@@ -1,17 +1,17 @@
-import { useMemo, useState } from 'react';
+import { ConfirmDialog } from '@/components/confirm-dialog';
+import { EmptyState } from '@/components/empty-state';
 import { FilterPills } from '@/components/filter-pills';
 import { SearchInput } from '@/components/search-input';
-import { EmptyState } from '@/components/empty-state';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
-import { ConfirmDialog } from '@/components/confirm-dialog';
-import { toast } from 'sonner';
-import { usePessoas } from '@/hooks/use-pessoas';
-import { useChamadas, useDeleteChamada } from '@/hooks/use-chamada';
-import { useAllPresencas } from '@/hooks/use-presencas';
-import { useCestas, useDeleteCesta } from '@/hooks/use-cestas';
 import { useAuth } from '@/features/auth/useAuth';
+import { useCestas, useDeleteCesta } from '@/hooks/use-cestas';
+import { useChamadas, useDeleteChamada } from '@/hooks/use-chamada';
+import { usePessoas } from '@/hooks/use-pessoas';
+import { useAllPresencas } from '@/hooks/use-presencas';
 import type { Chamada } from '@/types/domain';
+import { Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 type Tab = 'data' | 'pessoa' | 'cestas';
 
@@ -32,8 +32,8 @@ export function HistoricoPage() {
 
   const pessoaMap = useMemo(() => new Map(pessoas.map((p) => [p.id, p])), [pessoas]);
 
-  const chamadasSorted = useMemo(() =>
-    [...chamadas].sort((a, b) => b.data.localeCompare(a.data)),
+  const chamadasSorted = useMemo(
+    () => [...chamadas].sort((a, b) => b.data.localeCompare(a.data)),
     [chamadas],
   );
 
@@ -81,10 +81,12 @@ export function HistoricoPage() {
         ]}
       />
 
-      {tab !== 'data' && <SearchInput value={search} onChange={setSearch} placeholder="Buscar pessoa..." />}
+      {tab !== 'data' && (
+        <SearchInput value={search} onChange={setSearch} placeholder="Buscar pessoa..." />
+      )}
 
-      {tab === 'data' && (
-        chamadasSorted.length === 0 ? (
+      {tab === 'data' &&
+        (chamadasSorted.length === 0 ? (
           <EmptyState icon="📅" title="Nenhuma chamada registrada" />
         ) : (
           <ul className="space-y-2">
@@ -92,14 +94,24 @@ export function HistoricoPage() {
               const list = presencasByChamada.get(c.id) ?? [];
               const presentes = list.filter((p) => p.presente).length;
               return (
-                <li key={c.id} className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3">
+                <li
+                  key={c.id}
+                  className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
+                >
                   <div className="mb-2 flex items-center justify-between">
                     <div>
                       <div className="font-medium">{c.data}</div>
-                      <div className="text-xs text-[var(--color-text-muted)]">{presentes} presentes / {list.length} marcações</div>
+                      <div className="text-xs text-[var(--color-text-muted)]">
+                        {presentes} presentes / {list.length} marcações
+                      </div>
                     </div>
                     {isAdmin && (
-                      <Button size="icon" variant="ghost" onClick={() => setChamadaToDelete(c)} aria-label="Excluir chamada">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setChamadaToDelete(c)}
+                        aria-label="Excluir chamada"
+                      >
                         <Trash2 className="size-4 text-[var(--color-red)]" />
                       </Button>
                     )}
@@ -109,15 +121,18 @@ export function HistoricoPage() {
                       .filter((p) => p.presente)
                       .map((p) => {
                         const pessoa = pessoaMap.get(p.pessoa_id);
-                        return <li key={p.id} className="truncate">• {pessoa?.nome ?? '?'}</li>;
+                        return (
+                          <li key={p.id} className="truncate">
+                            • {pessoa?.nome ?? '?'}
+                          </li>
+                        );
                       })}
                   </ul>
                 </li>
               );
             })}
           </ul>
-        )
-      )}
+        ))}
 
       {tab === 'pessoa' && (
         <ul className="space-y-2">
@@ -127,9 +142,14 @@ export function HistoricoPage() {
             .map((p) => {
               const list = presencasByPessoa.get(p.id) ?? [];
               return (
-                <li key={p.id} className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3">
+                <li
+                  key={p.id}
+                  className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
+                >
                   <div className="font-medium">{p.nome}</div>
-                  <div className="text-xs text-[var(--color-text-muted)]">{list.length} presenças</div>
+                  <div className="text-xs text-[var(--color-text-muted)]">
+                    {list.length} presenças
+                  </div>
                 </li>
               );
             })}
@@ -145,26 +165,31 @@ export function HistoricoPage() {
             .map((p) => {
               const list = cestasByPessoa.get(p.id) ?? [];
               return (
-                <li key={p.id} className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3">
+                <li
+                  key={p.id}
+                  className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
+                >
                   <div className="font-medium">{p.nome}</div>
                   <ul className="mt-1 space-y-0.5 text-xs text-[var(--color-text-muted)]">
-                    {list.sort((a, b) => b.data.localeCompare(a.data)).map((c) => (
-                      <li key={c.id} className="flex items-center justify-between">
-                        <span>{c.data}</span>
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              await deleteCesta.mutateAsync(c.id);
-                              toast.success('Cesta removida');
-                            }}
-                            className="text-[var(--color-red)] hover:underline"
-                          >
-                            remover
-                          </button>
-                        )}
-                      </li>
-                    ))}
+                    {list
+                      .sort((a, b) => b.data.localeCompare(a.data))
+                      .map((c) => (
+                        <li key={c.id} className="flex items-center justify-between">
+                          <span>{c.data}</span>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await deleteCesta.mutateAsync(c.id);
+                                toast.success('Cesta removida');
+                              }}
+                              className="text-[var(--color-red)] hover:underline"
+                            >
+                              remover
+                            </button>
+                          )}
+                        </li>
+                      ))}
                   </ul>
                 </li>
               );
@@ -174,7 +199,9 @@ export function HistoricoPage() {
 
       <ConfirmDialog
         open={!!chamadaToDelete}
-        onOpenChange={(v) => { if (!v) setChamadaToDelete(null); }}
+        onOpenChange={(v) => {
+          if (!v) setChamadaToDelete(null);
+        }}
         title={`Excluir chamada ${chamadaToDelete?.data ?? ''}?`}
         description="Todas as presenças desta data serão removidas."
         variant="destructive"

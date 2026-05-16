@@ -1,22 +1,30 @@
-import { useEffect, useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
-import { toast } from 'sonner';
-import { PessoaInputSchema, type PessoaInput, GRUPOS } from '@/schemas/pessoa';
-import { useSavePessoa, usePessoa } from '@/hooks/use-pessoas';
+import { useAuth } from '@/features/auth/useAuth';
 import { useFamilias } from '@/hooks/use-familias';
 import { useRegisterConsent } from '@/hooks/use-pessoa-consent';
-import { useAuth } from '@/features/auth/useAuth';
+import { usePessoa, useSavePessoa } from '@/hooks/use-pessoas';
+import { GRUPOS, type PessoaInput, PessoaInputSchema } from '@/schemas/pessoa';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { ConsentModal } from './consent-modal';
 
 interface Props {
@@ -25,7 +33,7 @@ interface Props {
   pessoaId?: string | null;
 }
 
-const GRUPO_LABEL: Record<typeof GRUPOS[number], string> = {
+const GRUPO_LABEL: Record<(typeof GRUPOS)[number], string> = {
   evangelizacao: 'Evangelização',
   mocidade: 'Mocidade',
   adulto: 'Adulto',
@@ -44,15 +52,29 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
   const [pendingTermId, setPendingTermId] = useState<string | null>(null);
 
   const {
-    register, handleSubmit, control, reset, setValue,
+    register,
+    handleSubmit,
+    control,
+    reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<PessoaInput>({
     resolver: zodResolver(PessoaInputSchema),
     defaultValues: {
-      nome: '', grupo: 'adulto', telefone: '', familia_id: '',
-      rua: '', numero: '', complemento: '', bairro: '', cep: '',
-      visitada: false, apta_cesta: null, visita_obs: '',
-      excluir_ranking: false, consent_declarado: false,
+      nome: '',
+      grupo: 'adulto',
+      telefone: '',
+      familia_id: '',
+      rua: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cep: '',
+      visitada: false,
+      apta_cesta: null,
+      visita_obs: '',
+      excluir_ranking: false,
+      consent_declarado: false,
     },
   });
 
@@ -77,10 +99,20 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
       });
     } else {
       reset({
-        nome: '', grupo: 'adulto', telefone: '', familia_id: '',
-        rua: '', numero: '', complemento: '', bairro: '', cep: '',
-        visitada: false, apta_cesta: null, visita_obs: '',
-        excluir_ranking: false, consent_declarado: false,
+        nome: '',
+        grupo: 'adulto',
+        telefone: '',
+        familia_id: '',
+        rua: '',
+        numero: '',
+        complemento: '',
+        bairro: '',
+        cep: '',
+        visitada: false,
+        apta_cesta: null,
+        visita_obs: '',
+        excluir_ranking: false,
+        consent_declarado: false,
       });
     }
   }, [existing, open, reset]);
@@ -128,7 +160,9 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
             <div>
               <Label htmlFor="nome">Nome *</Label>
               <Input id="nome" {...register('nome')} autoComplete="off" />
-              {errors.nome && <p className="text-sm text-[var(--color-red)]">{errors.nome.message}</p>}
+              {errors.nome && (
+                <p className="text-sm text-[var(--color-red)]">{errors.nome.message}</p>
+              )}
             </div>
 
             <div>
@@ -138,10 +172,14 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
                 name="grupo"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {GRUPOS.map((g) => (
-                        <SelectItem key={g} value={g}>{GRUPO_LABEL[g]}</SelectItem>
+                        <SelectItem key={g} value={g}>
+                          {GRUPO_LABEL[g]}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -151,8 +189,15 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
 
             <div>
               <Label htmlFor="telefone">Telefone</Label>
-              <Input id="telefone" {...register('telefone')} autoComplete="off" placeholder="(11) 99999-9999" />
-              {errors.telefone && <p className="text-sm text-[var(--color-red)]">{errors.telefone.message}</p>}
+              <Input
+                id="telefone"
+                {...register('telefone')}
+                autoComplete="off"
+                placeholder="(11) 99999-9999"
+              />
+              {errors.telefone && (
+                <p className="text-sm text-[var(--color-red)]">{errors.telefone.message}</p>
+              )}
             </div>
 
             <div>
@@ -161,12 +206,19 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
                 control={control}
                 name="familia_id"
                 render={({ field }) => (
-                  <Select value={field.value ?? ''} onValueChange={(v) => field.onChange(v === '__none' ? '' : v)}>
-                    <SelectTrigger><SelectValue placeholder="Sem família" /></SelectTrigger>
+                  <Select
+                    value={field.value ?? ''}
+                    onValueChange={(v) => field.onChange(v === '__none' ? '' : v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sem família" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none">Sem família</SelectItem>
                       {familias.map((f) => (
-                        <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.nome}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -198,19 +250,25 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
                     <div>
                       <Label htmlFor="cep">CEP</Label>
                       <Input id="cep" {...register('cep')} placeholder="00000-000" />
-                      {errors.cep && <p className="text-sm text-[var(--color-red)]">{errors.cep.message}</p>}
+                      {errors.cep && (
+                        <p className="text-sm text-[var(--color-red)]">{errors.cep.message}</p>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="border-t border-[var(--color-border)] pt-4">
                   <h4 className="mb-2 text-sm font-semibold">Visita social (admin)</h4>
-                  <label className="flex items-center gap-2">
+                  <label htmlFor="visitada-check" className="flex items-center gap-2">
                     <Controller
                       control={control}
                       name="visitada"
                       render={({ field }) => (
-                        <Checkbox checked={field.value} onCheckedChange={(v) => field.onChange(v === true)} />
+                        <Checkbox
+                          id="visitada-check"
+                          checked={field.value}
+                          onCheckedChange={(v) => field.onChange(v === true)}
+                        />
                       )}
                     />
                     <span className="text-sm">Pessoa visitada</span>
@@ -223,9 +281,13 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
                       render={({ field }) => (
                         <Select
                           value={field.value === true ? 'sim' : field.value === false ? 'nao' : ''}
-                          onValueChange={(v) => field.onChange(v === 'sim' ? true : v === 'nao' ? false : null)}
+                          onValueChange={(v) =>
+                            field.onChange(v === 'sim' ? true : v === 'nao' ? false : null)
+                          }
                         >
-                          <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                          <SelectTrigger>
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="sim">Sim</SelectItem>
                             <SelectItem value="nao">Não</SelectItem>
@@ -243,12 +305,17 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
             )}
 
             <div className="border-t border-[var(--color-border)] pt-4">
-              <label className="flex items-start gap-2 text-sm">
+              <label htmlFor="excluir-ranking-check" className="flex items-start gap-2 text-sm">
                 <Controller
                   control={control}
                   name="excluir_ranking"
                   render={({ field }) => (
-                    <Checkbox checked={field.value} onCheckedChange={(v) => field.onChange(v === true)} className="mt-1" />
+                    <Checkbox
+                      id="excluir-ranking-check"
+                      checked={field.value}
+                      onCheckedChange={(v) => field.onChange(v === true)}
+                      className="mt-1"
+                    />
                   )}
                 />
                 <span>
@@ -277,13 +344,17 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
                   )}
                 />
                 {errors.consent_declarado && (
-                  <p className="mt-1 text-sm text-[var(--color-red)]">{errors.consent_declarado.message}</p>
+                  <p className="mt-1 text-sm text-[var(--color-red)]">
+                    {errors.consent_declarado.message}
+                  </p>
                 )}
               </div>
             )}
 
             <DialogFooter>
-              <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Salvando...' : 'Salvar'}
               </Button>

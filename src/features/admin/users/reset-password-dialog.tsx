@@ -1,12 +1,16 @@
-import { useState } from 'react';
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { useResetUserPassword } from '@/hooks/use-app-users';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface Props {
   open: boolean;
@@ -20,7 +24,10 @@ export function ResetPasswordDialog({ open, onOpenChange, userId, userNome }: Pr
   const [senha, setSenha] = useState('');
 
   const onConfirm = async () => {
-    if (senha.length < 8) { toast.error('Mínimo 8 caracteres'); return; }
+    if (senha.length < 8) {
+      toast.error('Mínimo 8 caracteres');
+      return;
+    }
     try {
       await reset.mutateAsync({ target_user_id: userId, nova_senha: senha });
       toast.success('Senha redefinida. Comunique ao usuário.');
@@ -32,7 +39,13 @@ export function ResetPasswordDialog({ open, onOpenChange, userId, userNome }: Pr
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) setSenha(''); onOpenChange(v); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) setSenha('');
+        onOpenChange(v);
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Resetar senha — {userNome}</DialogTitle>
@@ -42,8 +55,12 @@ export function ResetPasswordDialog({ open, onOpenChange, userId, userNome }: Pr
           <Input id="nova_senha" value={senha} onChange={(e) => setSenha(e.target.value)} />
         </div>
         <DialogFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={onConfirm} disabled={reset.isPending}>{reset.isPending ? 'Resetando...' : 'Resetar'}</Button>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={onConfirm} disabled={reset.isPending}>
+            {reset.isPending ? 'Resetando...' : 'Resetar'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

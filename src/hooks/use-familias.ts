@@ -1,8 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth/useAuth';
 import { db } from '@/lib/db';
 import { enqueueSync } from '@/lib/sync';
-import { useAuth } from '@/features/auth/useAuth';
 import type { Familia } from '@/types/domain';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export function useFamilias() {
   return useQuery({
@@ -60,10 +60,19 @@ export function useDeleteFamilia() {
       if (!user) throw new Error('Not authenticated');
       const existing = await db.familias.get(id);
       if (!existing) return;
-      const updated: Familia = { ...existing, ativo: false, atualizado_em: new Date().toISOString() };
+      const updated: Familia = {
+        ...existing,
+        ativo: false,
+        atualizado_em: new Date().toISOString(),
+      };
       await db.transaction('rw', db.familias, db.sync_queue, async () => {
         await db.familias.put(updated);
-        await enqueueSync({ table: 'familias', operation: 'upsert', data: updated, user_id: user.id });
+        await enqueueSync({
+          table: 'familias',
+          operation: 'upsert',
+          data: updated,
+          user_id: user.id,
+        });
       });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['familias'] }),

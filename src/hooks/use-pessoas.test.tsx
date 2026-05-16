@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
-import { db } from '@/lib/db';
-import { usePessoas, useSavePessoa } from './use-pessoas';
 import { useAuth } from '@/features/auth/useAuth';
+import { db } from '@/lib/db';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { usePessoas, useSavePessoa } from './use-pessoas';
 
 function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

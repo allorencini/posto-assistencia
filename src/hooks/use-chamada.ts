@@ -1,8 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth/useAuth';
 import { db } from '@/lib/db';
 import { enqueueSync } from '@/lib/sync';
-import { useAuth } from '@/features/auth/useAuth';
 import type { Chamada } from '@/types/domain';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export function useChamadas() {
   return useQuery({

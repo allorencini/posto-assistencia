@@ -1,7 +1,6 @@
 // Supabase client setup
-// Replace these with your actual Supabase project values
 const SUPABASE_URL = 'https://hhtxaeauuutmuwwkotgf.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhodHhhZWF1dXV0bXV3d2tvdGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzY2MzAsImV4cCI6MjA5MTQxMjYzMH0.owJaGtcTBUXpzGboXIcXnDPlYMddQ7jcXNE0hoFTP8s';
+const SUPABASE_ANON_KEY = 'sb_publishable_fxsXFdouInfiol_QFywOHA_KAddbI_T';
 
 // Import Supabase client from CDN
 let supabase = null;

@@ -1,7 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
-// TODO Phase D: restore once @/lib/db exists
-// import { db } from '@/lib/db';
+import { db } from '@/lib/db';
 
 export async function logout() {
   try {
@@ -9,12 +8,11 @@ export async function logout() {
   } catch {
     // ignore — limpa local sempre
   }
-  // TODO Phase D: restore
-  // try {
-  //   await db.delete();
-  // } catch {
-  //   // ignore
-  // }
+  try {
+    await db.delete();
+  } catch {
+    // ignore
+  }
   try {
     sessionStorage.clear();
     localStorage.clear();

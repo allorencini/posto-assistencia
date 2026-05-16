@@ -1,0 +1,14 @@
+-- TEMPLATE: substitua valores antes de rodar manualmente
+-- Crie primeiro o user no Supabase Auth (dashboard ou API), depois rode:
+--
+-- INSERT INTO app_users (id, nome, papel, ativo, criado_em)
+-- VALUES (
+--   '<auth.users.id-do-pastor>',
+--   '<Nome do Pastor>',
+--   'admin',
+--   TRUE,
+--   NOW()
+-- )
+-- ON CONFLICT (id) DO NOTHING;
+--
+-- (Não comitar valores reais — dependem do dashboard)

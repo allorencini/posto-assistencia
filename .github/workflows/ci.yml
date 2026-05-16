@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main, refactor/react-lgpd]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Unit tests
+        run: pnpm test
+        env:
+          VITE_SUPABASE_URL: https://test.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJtest_ci
+          VITE_DPO_NOME: CI DPO
+          VITE_DPO_EMAIL: ci@test.com
+          VITE_APP_VERSION: ci
+
+      - name: Build
+        run: pnpm run build
+        env:
+          VITE_SUPABASE_URL: https://test.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJtest_ci
+          VITE_DPO_NOME: CI DPO
+          VITE_DPO_EMAIL: ci@test.com
+          VITE_APP_VERSION: ci
+
+      - name: Audit deps
+        run: pnpm audit --audit-level=high || true

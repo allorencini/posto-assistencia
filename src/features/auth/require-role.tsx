@@ -1,6 +1,6 @@
-import { Navigate } from 'react-router-dom';
-import { useAuth, type Papel } from './useAuth';
 import type { ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
+import { type Papel, useAuth } from './useAuth';
 
 interface Props {
   role?: Papel | Papel[];

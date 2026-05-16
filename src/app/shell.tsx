@@ -1,10 +1,19 @@
-import { NavLink, Outlet } from 'react-router-dom';
-import { Users, CheckSquare, History, Trophy, Package, Gift, ShieldCheck, LogOut } from 'lucide-react';
-import { useAuth } from '@/features/auth/useAuth';
+import { SyncStatus } from '@/components/sync-status';
 import { useIdleLogout } from '@/features/auth/idle-timeout';
 import { logout } from '@/features/auth/logout';
-import { SyncStatus } from '@/components/sync-status';
+import { useAuth } from '@/features/auth/useAuth';
 import { cn } from '@/lib/cn';
+import {
+  CheckSquare,
+  Gift,
+  History,
+  LogOut,
+  Package,
+  ShieldCheck,
+  Trophy,
+  Users,
+} from 'lucide-react';
+import { NavLink, Outlet } from 'react-router-dom';
 
 const tabs = [
   { to: '/chamada', label: 'Chamada', icon: CheckSquare, role: undefined },

@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
 import { startIdleDetector } from '@/lib/idle';
+import { useEffect } from 'react';
 import { logout } from './logout';
 import { useAuth } from './useAuth';
 

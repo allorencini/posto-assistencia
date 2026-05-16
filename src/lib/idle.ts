@@ -8,14 +8,18 @@ export function startIdleDetector(idleMs: number, onIdle: () => void): () => voi
     timer = setTimeout(onIdle, idleMs);
   };
 
-  EVENTS.forEach((ev) => window.addEventListener(ev, reset, { passive: true }));
+  for (const ev of EVENTS) {
+    window.addEventListener(ev, reset, { passive: true });
+  }
   document.addEventListener('visibilitychange', reset);
 
   reset();
 
   return () => {
     clearTimeout(timer);
-    EVENTS.forEach((ev) => window.removeEventListener(ev, reset));
+    for (const ev of EVENTS) {
+      window.removeEventListener(ev, reset);
+    }
     document.removeEventListener('visibilitychange', reset);
   };
 }

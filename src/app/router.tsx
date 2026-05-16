@@ -1,16 +1,16 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { LoginPage } from '@/features/auth/login';
 import { RequireRole } from '@/features/auth/require-role';
-import { AppShell } from './shell';
-import { ChamadaPage } from '@/pages/chamada';
-import { CadastroPage } from '@/pages/cadastro';
-import { HistoricoPage } from '@/pages/historico';
-import { RankingPage } from '@/pages/ranking';
-import { EstoquePage } from '@/pages/estoque';
-import { PedidosPage } from '@/pages/pedidos';
 import { AdminPage } from '@/pages/admin';
-import { PrivacidadePage } from '@/pages/privacidade';
+import { CadastroPage } from '@/pages/cadastro';
+import { ChamadaPage } from '@/pages/chamada';
+import { EstoquePage } from '@/pages/estoque';
+import { HistoricoPage } from '@/pages/historico';
 import { NotFoundPage } from '@/pages/not-found';
+import { PedidosPage } from '@/pages/pedidos';
+import { PrivacidadePage } from '@/pages/privacidade';
+import { RankingPage } from '@/pages/ranking';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { AppShell } from './shell';
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },

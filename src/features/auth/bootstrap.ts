@@ -1,10 +1,12 @@
 import { supabase } from '@/lib/supabase';
-import { useAuth, type Papel } from './useAuth';
+import { type Papel, useAuth } from './useAuth';
 
 export async function bootstrapAuth() {
   useAuth.setState({ loading: true });
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session?.user) {
     useAuth.getState().clear();
     return;
@@ -24,7 +26,8 @@ export async function bootstrapAuth() {
 
   useAuth.getState().setSession(session.user, appUser.papel as Papel);
 
-  (supabase.from('app_users') as any).update({ ultimo_login_em: new Date().toISOString() })
+  (supabase.from('app_users') as any)
+    .update({ ultimo_login_em: new Date().toISOString() })
     .eq('id', session.user.id);
 
   supabase.auth.onAuthStateChange(async (_event, newSession) => {

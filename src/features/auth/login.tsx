@@ -1,18 +1,22 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
-import { LoginSchema, type LoginInput } from '@/schemas/login';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth, type Papel } from './useAuth';
+import { supabase } from '@/lib/supabase';
+import { type LoginInput, LoginSchema } from '@/schemas/login';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+import { type Papel, useAuth } from './useAuth';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const { register, handleSubmit, formState: { isSubmitting, errors } } = useForm<LoginInput>({
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting, errors },
+  } = useForm<LoginInput>({
     resolver: zodResolver(LoginSchema),
   });
 
@@ -51,13 +55,22 @@ export function LoginPage() {
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input id="email" type="email" autoComplete="email" {...register('email')} />
-          {errors.email && <p className="text-sm text-[var(--color-red)]">{errors.email.message}</p>}
+          {errors.email && (
+            <p className="text-sm text-[var(--color-red)]">{errors.email.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="senha">Senha</Label>
-          <Input id="senha" type="password" autoComplete="current-password" {...register('senha')} />
-          {errors.senha && <p className="text-sm text-[var(--color-red)]">{errors.senha.message}</p>}
+          <Input
+            id="senha"
+            type="password"
+            autoComplete="current-password"
+            {...register('senha')}
+          />
+          {errors.senha && (
+            <p className="text-sm text-[var(--color-red)]">{errors.senha.message}</p>
+          )}
         </div>
 
         {error && <p className="text-sm text-[var(--color-red)]">{error}</p>}

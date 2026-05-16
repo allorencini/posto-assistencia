@@ -30,7 +30,10 @@ export interface Database {
           criado_em: string;
           atualizado_em: string;
         };
-        Insert: Partial<Database['public']['Tables']['pessoas']['Row']> & { nome: string; grupo: Database['public']['Tables']['pessoas']['Row']['grupo'] };
+        Insert: Partial<Database['public']['Tables']['pessoas']['Row']> & {
+          nome: string;
+          grupo: Database['public']['Tables']['pessoas']['Row']['grupo'];
+        };
         Update: Partial<Database['public']['Tables']['pessoas']['Row']>;
       };
       familias: {
@@ -44,13 +47,33 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['chamadas']['Row']>;
       };
       presencas: {
-        Row: { id: string; chamada_id: string; pessoa_id: string; presente: boolean; criado_em: string; atualizado_em: string };
-        Insert: Partial<Database['public']['Tables']['presencas']['Row']> & { chamada_id: string; pessoa_id: string };
+        Row: {
+          id: string;
+          chamada_id: string;
+          pessoa_id: string;
+          presente: boolean;
+          criado_em: string;
+          atualizado_em: string;
+        };
+        Insert: Partial<Database['public']['Tables']['presencas']['Row']> & {
+          chamada_id: string;
+          pessoa_id: string;
+        };
         Update: Partial<Database['public']['Tables']['presencas']['Row']>;
       };
       cestas: {
-        Row: { id: string; pessoa_id: string; data: string; ativo: boolean; criado_em: string; atualizado_em: string };
-        Insert: Partial<Database['public']['Tables']['cestas']['Row']> & { pessoa_id: string; data: string };
+        Row: {
+          id: string;
+          pessoa_id: string;
+          data: string;
+          ativo: boolean;
+          criado_em: string;
+          atualizado_em: string;
+        };
+        Insert: Partial<Database['public']['Tables']['cestas']['Row']> & {
+          pessoa_id: string;
+          data: string;
+        };
         Update: Partial<Database['public']['Tables']['cestas']['Row']>;
       };
       itens: {
@@ -63,7 +86,10 @@ export interface Database {
           criado_em: string;
           atualizado_em: string;
         };
-        Insert: Partial<Database['public']['Tables']['itens']['Row']> & { nome: string; categoria: Database['public']['Tables']['itens']['Row']['categoria'] };
+        Insert: Partial<Database['public']['Tables']['itens']['Row']> & {
+          nome: string;
+          categoria: Database['public']['Tables']['itens']['Row']['categoria'];
+        };
         Update: Partial<Database['public']['Tables']['itens']['Row']>;
       };
       pedidos: {
@@ -94,12 +120,26 @@ export interface Database {
           criado_por: string | null;
           ultimo_login_em: string | null;
         };
-        Insert: Partial<Database['public']['Tables']['app_users']['Row']> & { id: string; nome: string; papel: Database['public']['Tables']['app_users']['Row']['papel'] };
+        Insert: Partial<Database['public']['Tables']['app_users']['Row']> & {
+          id: string;
+          nome: string;
+          papel: Database['public']['Tables']['app_users']['Row']['papel'];
+        };
         Update: Partial<Database['public']['Tables']['app_users']['Row']>;
       };
       consent_terms: {
-        Row: { id: string; versao: string; texto: string; ativo: boolean; criado_em: string; criado_por: string | null };
-        Insert: Partial<Database['public']['Tables']['consent_terms']['Row']> & { versao: string; texto: string };
+        Row: {
+          id: string;
+          versao: string;
+          texto: string;
+          ativo: boolean;
+          criado_em: string;
+          criado_por: string | null;
+        };
+        Insert: Partial<Database['public']['Tables']['consent_terms']['Row']> & {
+          versao: string;
+          texto: string;
+        };
         Update: Partial<Database['public']['Tables']['consent_terms']['Row']>;
       };
       pessoa_consents: {
@@ -113,7 +153,11 @@ export interface Database {
           revogado_em: string | null;
           revogado_por: string | null;
         };
-        Insert: Partial<Database['public']['Tables']['pessoa_consents']['Row']> & { pessoa_id: string; consent_term_id: string; declarado_por: string };
+        Insert: Partial<Database['public']['Tables']['pessoa_consents']['Row']> & {
+          pessoa_id: string;
+          consent_term_id: string;
+          declarado_por: string;
+        };
         Update: Partial<Database['public']['Tables']['pessoa_consents']['Row']>;
       };
       audit_log: {
@@ -128,7 +172,11 @@ export interface Database {
           user_agent: string | null;
           ocorrido_em: string;
         };
-        Insert: Partial<Database['public']['Tables']['audit_log']['Row']> & { tabela: string; registro_id: string; operacao: Database['public']['Tables']['audit_log']['Row']['operacao'] };
+        Insert: Partial<Database['public']['Tables']['audit_log']['Row']> & {
+          tabela: string;
+          registro_id: string;
+          operacao: Database['public']['Tables']['audit_log']['Row']['operacao'];
+        };
         Update: Partial<Database['public']['Tables']['audit_log']['Row']>;
       };
       lgpd_requests: {
@@ -136,7 +184,14 @@ export interface Database {
           id: string;
           pessoa_id: string | null;
           pessoa_nome_snapshot: string | null;
-          tipo: 'confirmacao' | 'acesso' | 'correcao' | 'anonimizacao' | 'eliminacao' | 'portabilidade' | 'revogacao';
+          tipo:
+            | 'confirmacao'
+            | 'acesso'
+            | 'correcao'
+            | 'anonimizacao'
+            | 'eliminacao'
+            | 'portabilidade'
+            | 'revogacao';
           status: 'aberto' | 'concluido' | 'rejeitado';
           solicitado_em: string;
           solicitado_por: string | null;
@@ -145,7 +200,9 @@ export interface Database {
           observacao: string | null;
           resultado_arquivo: string | null;
         };
-        Insert: Partial<Database['public']['Tables']['lgpd_requests']['Row']> & { tipo: Database['public']['Tables']['lgpd_requests']['Row']['tipo'] };
+        Insert: Partial<Database['public']['Tables']['lgpd_requests']['Row']> & {
+          tipo: Database['public']['Tables']['lgpd_requests']['Row']['tipo'];
+        };
         Update: Partial<Database['public']['Tables']['lgpd_requests']['Row']>;
       };
     };

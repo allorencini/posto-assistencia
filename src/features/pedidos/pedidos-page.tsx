@@ -58,8 +58,8 @@ export function PedidosPage() {
         }}
         className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white"
       >
-        <Plus className="mr-2 size-5" />
-        Adicionar pedido
+        <Plus className="size-5" />
+        <span>Adicionar pedido</span>
       </Button>
 
       {byItem.length === 0 ? (

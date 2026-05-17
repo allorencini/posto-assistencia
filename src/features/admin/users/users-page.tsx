@@ -23,8 +23,8 @@ export function UsersPage() {
         onClick={() => setFormOpen(true)}
         className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white"
       >
-        <Plus className="mr-2 size-5" />
-        Adicionar
+        <Plus className="size-5" />
+        <span>Adicionar</span>
       </Button>
 
       {users.length === 0 ? (

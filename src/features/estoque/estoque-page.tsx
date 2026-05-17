@@ -75,62 +75,72 @@ export function EstoquePage() {
       {filtered.length === 0 ? (
         <EmptyState icon="📦" title="Estoque vazio" />
       ) : (
-        <ul className="space-y-2">
-          {filtered.map((i) => (
-            <li
-              key={i.id}
-              className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{i.nome}</div>
-                  <div className="text-xs text-[var(--color-text-muted)]">
-                    {CATEGORIA_LABEL[i.categoria]}
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => bump(i, -1)}
-                    disabled={i.quantidade <= 0}
-                    aria-label="Diminuir"
-                  >
-                    <Minus className="size-4" />
-                  </Button>
-                  <span className="w-10 text-center font-mono text-lg">{i.quantidade}</span>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => bump(i, 1)}
-                    aria-label="Aumentar"
-                  >
-                    <PlusIcon className="size-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => {
-                      setEditId(i.id);
-                      setFormOpen(true);
-                    }}
-                    aria-label="Editar"
-                  >
-                    <Pencil className="size-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => setToDelete(i)}
-                    aria-label="Excluir"
-                  >
-                    <Trash2 className="size-4 text-[var(--color-red)]" />
-                  </Button>
-                </div>
+        <div className="space-y-4">
+          {CATEGORIAS.map((catKey) => {
+            const list = filtered.filter((i) => i.categoria === catKey);
+            if (list.length === 0) return null;
+            return (
+              <div key={catKey}>
+                <h3 className="mb-2 text-sm font-semibold text-[var(--color-text-muted)]">
+                  {CATEGORIA_LABEL[catKey]} ({list.length})
+                </h3>
+                <ul className="space-y-2">
+                  {list.map((i) => (
+                    <li
+                      key={i.id}
+                      className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-medium">{i.nome}</div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => bump(i, -1)}
+                            disabled={i.quantidade <= 0}
+                            aria-label="Diminuir"
+                          >
+                            <Minus className="size-4" />
+                          </Button>
+                          <span className="w-10 text-center font-mono text-lg">{i.quantidade}</span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => bump(i, 1)}
+                            aria-label="Aumentar"
+                          >
+                            <PlusIcon className="size-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditId(i.id);
+                              setFormOpen(true);
+                            }}
+                            aria-label="Editar"
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setToDelete(i)}
+                            aria-label="Excluir"
+                          >
+                            <Trash2 className="size-4 text-[var(--color-red)]" />
+                          </Button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </li>
-          ))}
-        </ul>
+            );
+          })}
+        </div>
       )}
 
       <ItemForm open={formOpen} onOpenChange={setFormOpen} itemId={editId} />

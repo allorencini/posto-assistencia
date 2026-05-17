@@ -52,23 +52,20 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { data: user, error } = await supabaseAdmin
-    .from('app_users')
-    .select('id, ativo')
-    .ilike('username', parsed.data.username)
-    .maybeSingle();
+  // RPC: SECURITY DEFINER function gives service_role-bypass access in one round-trip
+  // and avoids the auth.admin.getUserById call, which has been flaky.
+  const { data: email, error } = await supabaseAdmin.rpc('resolve_username_to_email', {
+    p_username: parsed.data.username,
+  });
 
-  if (error || !user || !user.ativo) {
-    await delayPad(start);
-    return new Response(JSON.stringify({ email: null }), {
-      status: 200,
-      headers: { ...CORS_HEADERS, 'content-type': 'application/json' },
-    });
-  }
+  console.log('[resolve-username]', {
+    input: parsed.data.username,
+    email,
+    error: error?.message,
+  });
 
-  const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(user.id);
   await delayPad(start);
-  return new Response(JSON.stringify({ email: authUser?.user?.email ?? null }), {
+  return new Response(JSON.stringify({ email: email ?? null }), {
     status: 200,
     headers: { ...CORS_HEADERS, 'content-type': 'application/json' },
   });

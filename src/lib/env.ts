@@ -4,7 +4,11 @@ const EnvSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(10),
   DPO_NOME: z.string().min(1),
-  DPO_EMAIL: z.string().email(),
+  DPO_EMAIL: z
+    .string()
+    .email()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   APP_VERSION: z.string().default('dev'),
 });
 

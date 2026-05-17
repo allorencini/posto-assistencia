@@ -1,0 +1,53 @@
+name: db-backup
+
+# Backup semanal do Postgres do Supabase. Roda domingo 03:00 UTC (00:00 BRT)
+# e pode ser disparado manualmente. Mantém artifact por 90 dias (free tier).
+# Pra restaurar: baixa o artifact e roda `psql $DATABASE_URL < dump.sql`.
+#
+# Requisitos (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL — connection string Postgres (formato:
+#     postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres)
+#     Pode pegar em Supabase → Project Settings → Database → Connection string (URI).
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'
+  workflow_dispatch: {}
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install postgresql-client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Dump database
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL secret is not configured"
+            exit 1
+          fi
+          mkdir -p backup
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          pg_dump \
+            --no-owner \
+            --no-privileges \
+            --schema=public \
+            --schema=auth \
+            --format=plain \
+            "$DB_URL" \
+            | gzip > "backup/presenca-${STAMP}.sql.gz"
+          ls -lh backup/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: presenca-db-backup
+          path: backup/*.sql.gz
+          retention-days: 90
+          if-no-files-found: error

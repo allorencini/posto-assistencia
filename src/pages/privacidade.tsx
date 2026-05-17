@@ -32,11 +32,15 @@ export function PrivacidadePage() {
         <li>Portabilidade (exportação JSON)</li>
         <li>Revogar consentimento</li>
       </ul>
-      <p>Para exercer estes direitos, contate o DPO:</p>
+      <p>Para exercer estes direitos, contate o responsável pelos dados:</p>
       <p>
         <strong>{env.DPO_NOME}</strong>
-        <br />
-        <a href={`mailto:${env.DPO_EMAIL}`}>{env.DPO_EMAIL}</a>
+        {env.DPO_EMAIL && (
+          <>
+            <br />
+            <a href={`mailto:${env.DPO_EMAIL}`}>{env.DPO_EMAIL}</a>
+          </>
+        )}
       </p>
     </div>
   );

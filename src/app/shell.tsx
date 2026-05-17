@@ -65,7 +65,7 @@ export function AppShell() {
         )}
       >
         <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
-          <h2 className="text-lg font-bold text-[var(--color-text)]">Presença</h2>
+          <h2 className="text-lg font-bold text-[var(--color-text)]">Posto Assistência</h2>
           <button
             type="button"
             className="md:hidden"

@@ -30,8 +30,20 @@ export function useGetOrCreateChamada() {
       const user = useAuth.getState().user;
       if (!user) throw new Error('Not authenticated');
 
-      const existing = await db.chamadas.where('data').equals(data).first();
-      if (existing) return existing;
+      // Dedupe local: pode haver chamadas duplicadas pra mesma data (bug pre-fix).
+      // Preferir a mais antiga (server-side criada via cron/SQL bulk), deletar órfãs locais.
+      const all = await db.chamadas.where('data').equals(data).toArray();
+      if (all.length > 0) {
+        const sorted = [...all].sort((a, b) => (a.criado_em ?? '').localeCompare(b.criado_em ?? ''));
+        const keep = sorted[0];
+        const orphans = sorted.slice(1);
+        if (orphans.length > 0) {
+          await db.transaction('rw', db.chamadas, async () => {
+            for (const o of orphans) await db.chamadas.delete(o.id);
+          });
+        }
+        return keep;
+      }
 
       const now = new Date().toISOString();
       const chamada: Chamada = {

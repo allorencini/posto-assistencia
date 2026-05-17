@@ -11,9 +11,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Presença',
-        short_name: 'Presença',
-        description: 'Controle de presença, cestas e doações',
+        name: 'Posto Assistência',
+        short_name: 'Posto',
+        description: 'Posto de Assistência — controle de presença, cestas e doações',
         theme_color: '#0f3460',
         background_color: '#0a0a0a',
         display: 'standalone',

@@ -78,7 +78,7 @@ export function LoginPage() {
         onSubmit={handleSubmit(onSubmit)}
         className="w-full max-w-sm space-y-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6"
       >
-        <h1 className="text-2xl font-semibold">Presença</h1>
+        <h1 className="text-2xl font-semibold">Posto Assistência</h1>
 
         <div className="space-y-2">
           <Label htmlFor="login">Email ou usuário</Label>

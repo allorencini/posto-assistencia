@@ -92,11 +92,14 @@ export function PedidosPage() {
                   <ul className="border-t border-[var(--color-border)]">
                     {list
                       .sort((a, b) => a.solicitado_em.localeCompare(b.solicitado_em))
-                      .map((p) => (
+                      .map((p, idx) => (
                         <li
                           key={p.id}
                           className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
                         >
+                          <div className="flex w-10 shrink-0 items-center justify-center text-sm font-semibold tabular-nums text-[var(--color-text-muted)]">
+                            #{idx + 1}
+                          </div>
                           <div className="min-w-0 flex-1">
                             <div className="truncate">{destOf(p)}</div>
                             <div className="text-xs text-[var(--color-text-muted)]">

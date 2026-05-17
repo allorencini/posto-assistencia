@@ -90,7 +90,7 @@ export function EstoquePage() {
                       key={i.id}
                       className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
                     >
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="truncate font-medium">{i.nome}</div>
                         </div>

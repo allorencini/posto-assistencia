@@ -24,12 +24,30 @@ export function scheduleSync(): void {
   }, 500);
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_ATTEMPTS = 5;
+
 export async function runSync(): Promise<void> {
   if (inProgress) return;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
   inProgress = true;
 
   try {
+    // Limpa itens órfãos: IDs não-UUID (pre-fix bug) ou já tentados demais
+    const allQueue = await db.sync_queue.toArray();
+    const orphanIds = allQueue
+      .filter((q) => {
+        if (q.attempts >= MAX_ATTEMPTS) return true;
+        const id = q.data?.id;
+        if (id && typeof id === 'string' && !UUID_REGEX.test(id)) return true;
+        return false;
+      })
+      .map((q) => q.id)
+      .filter((id): id is number => typeof id === 'number');
+    if (orphanIds.length > 0) {
+      await db.sync_queue.bulkDelete(orphanIds);
+    }
+
     const queue = await db.sync_queue.orderBy('timestamp').toArray();
     for (const item of queue) {
       try {

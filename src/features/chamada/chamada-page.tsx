@@ -100,9 +100,11 @@ export function ChamadaPage() {
     list.forEach((p) => {
       if (grouped[p.grupo]) grouped[p.grupo].push(p);
     });
-    const isFourFaltas = (hist: HistMark[]) => hist.length === 4 && hist.every((h) => h === 'F');
+    // ≥3 marcações não-presentes (F ou '-') nas últimas 4 chamadas → joga pro fim
+    const hasThreeNonP = (hist: HistMark[]) =>
+      hist.length === 4 && hist.filter((h) => h !== 'P').length >= 3;
     const sortKey = (p: (typeof pessoas)[number]) =>
-      isFourFaltas(historicoMap.get(p.id) ?? []) ? 1 : 0;
+      hasThreeNonP(historicoMap.get(p.id) ?? []) ? 1 : 0;
     GRUPOS.forEach((g) =>
       grouped[g].sort((a, b) => sortKey(a) - sortKey(b) || a.nome.localeCompare(b.nome)),
     );

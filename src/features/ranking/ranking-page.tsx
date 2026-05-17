@@ -162,38 +162,24 @@ export function RankingPage() {
       {visibleGrupos.map((g) => {
         const list = byGrupo[g];
         if (list.length === 0) return null;
-        // Dense rank por count: mesmas presenças = mesma posição, próximo count distinto = posição+1
-        let lastCount = -1;
-        let lastPos = 0;
-        const posByPessoa = new Map<string, number>();
-        list.forEach((p) => {
-          const c = presencaCountByPessoa.get(p.id) ?? 0;
-          if (c !== lastCount) {
-            lastPos += 1;
-            lastCount = c;
-          }
-          posByPessoa.set(p.id, lastPos);
-        });
         return (
           <section key={g}>
             <h2 className="mb-2 text-sm font-semibold text-[var(--color-text-muted)]">
               {GRUPO_LABEL[g]} ({list.length})
             </h2>
             <ol className="space-y-1">
-              {list.map((p) => {
+              {list.map((p, idx) => {
                 const count = presencaCountByPessoa.get(p.id) ?? 0;
                 const pct = totalChamadas > 0 ? Math.round((count / totalChamadas) * 100) : 0;
                 const cestaCount = cestasCountByPessoa.get(p.id) ?? 0;
                 const recebeuHoje = cestaTodaySet.has(p.id);
-                const pos = posByPessoa.get(p.id) ?? 0;
-                const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : null;
                 return (
                   <li
                     key={p.id}
                     className="flex items-center justify-between gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2"
                   >
                     <div className="flex w-10 shrink-0 items-center justify-center text-sm font-semibold tabular-nums text-[var(--color-text-muted)]">
-                      {medal ?? `${pos}º`}
+                      #{idx + 1}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{p.nome}</div>

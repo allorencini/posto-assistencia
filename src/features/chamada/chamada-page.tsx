@@ -8,7 +8,7 @@ import { useAllPresencas, usePresencasByChamada, useSavePresenca } from '@/hooks
 import { cn } from '@/lib/cn';
 import { normalize } from '@/lib/normalize';
 import { GRUPOS } from '@/schemas/pessoa';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 const GRUPO_LABEL = {
@@ -32,22 +32,23 @@ export function ChamadaPage() {
   const { data: allPresencas = [] } = useAllPresencas();
   const getOrCreate = useGetOrCreateChamada();
   const savePresenca = useSavePresenca();
-  const [chamadaId, setChamadaId] = useState<string | null>(null);
+  // Pega chamada existente pra hoje sem criar (criação lazy no primeiro toggle pra não
+  // poluir histórico com chamadas vazias quando user só abre a página).
+  const existing = useMemo(() => chamadas.find((c) => c.data === today) ?? null, [chamadas, today]);
+  const [chamadaId, setChamadaId] = useState<string | null>(existing?.id ?? null);
+  if (existing && chamadaId !== existing.id) setChamadaId(existing.id);
   const { data: presencas = [] } = usePresencasByChamada(chamadaId);
+  const creatingRef = useRef<Promise<string> | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: getOrCreate is a stable mutation reference
-  useEffect(() => {
-    let cancelled = false;
-    getOrCreate
-      .mutateAsync(today)
-      .then((c) => {
-        if (!cancelled) setChamadaId(c.id);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [today]);
+  const ensureChamadaId = async (): Promise<string> => {
+    if (chamadaId) return chamadaId;
+    if (!creatingRef.current) {
+      creatingRef.current = getOrCreate.mutateAsync(today).then((c) => c.id);
+    }
+    const id = await creatingRef.current;
+    setChamadaId(id);
+    return id;
+  };
 
   const [search, setSearch] = useState('');
   const [grupoFilter, setGrupoFilter] = useState('todos');
@@ -114,10 +115,10 @@ export function ChamadaPage() {
   const presentCount = Array.from(presentMap.values()).filter(Boolean).length;
 
   const toggle = async (pessoaId: string) => {
-    if (!chamadaId) return;
     try {
+      const cid = await ensureChamadaId();
       await savePresenca.mutateAsync({
-        chamada_id: chamadaId,
+        chamada_id: cid,
         pessoa_id: pessoaId,
         presente: !(presentMap.get(pessoaId) ?? false),
       });
@@ -191,7 +192,6 @@ export function ChamadaPage() {
                         <Button
                           size="sm"
                           onClick={() => toggle(p.id)}
-                          disabled={!chamadaId}
                           className={
                             'w-28 shrink-0 justify-center text-center font-semibold ' +
                             (isPresent

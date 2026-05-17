@@ -100,11 +100,12 @@ export function ChamadaPage() {
     list.forEach((p) => {
       if (grouped[p.grupo]) grouped[p.grupo].push(p);
     });
-    // ≥3 marcações não-presentes (F ou '-') nas últimas 4 chamadas → joga pro fim
-    const hasThreeNonP = (hist: HistMark[]) =>
-      hist.length === 4 && hist.filter((h) => h !== 'P').length >= 3;
+    // Zero presenças nas últimas 4 chamadas (só F ou '-') → joga pro fim.
+    // Qualquer P recente mantém a pessoa em ordem alfabética normal.
+    const noPresence = (hist: HistMark[]) =>
+      hist.length === 4 && hist.every((h) => h !== 'P');
     const sortKey = (p: (typeof pessoas)[number]) =>
-      hasThreeNonP(historicoMap.get(p.id) ?? []) ? 1 : 0;
+      noPresence(historicoMap.get(p.id) ?? []) ? 1 : 0;
     GRUPOS.forEach((g) =>
       grouped[g].sort((a, b) => sortKey(a) - sortKey(b) || a.nome.localeCompare(b.nome)),
     );

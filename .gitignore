@@ -1,4 +1,33 @@
+# Original
 node_modules/
 .env
 .DS_Store
 Thumbs.db
+
+# Vite
+dist/
+.vite/
+
+# Local env
+.env.local
+.env.*.local
+
+# Vercel
+.vercel
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+
+# Tests
+coverage/
+playwright-report/
+test-results/
+
+# TypeScript
+*.tsbuildinfo

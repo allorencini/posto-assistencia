@@ -18,6 +18,13 @@ const GRUPO_LABEL = {
   gestante: 'Gestantes',
 } as const;
 
+const GRUPO_BADGE = {
+  evangelizacao: { label: 'Evang.', cls: 'bg-blue-500/20 text-blue-300' },
+  mocidade: { label: 'Mocidade', cls: 'bg-purple-500/20 text-purple-300' },
+  adulto: { label: 'Adulto', cls: 'bg-emerald-500/20 text-emerald-300' },
+  gestante: { label: 'Gestante', cls: 'bg-pink-500/20 text-pink-300' },
+} as const;
+
 interface Props {
   onEdit: (id: string) => void;
 }
@@ -80,7 +87,14 @@ export function PessoaList({ onEdit }: Props) {
                       className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium">{p.nome}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="truncate font-medium">{p.nome}</span>
+                          <span
+                            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${GRUPO_BADGE[p.grupo].cls}`}
+                          >
+                            {GRUPO_BADGE[p.grupo].label}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex shrink-0 gap-1">
                         <Button

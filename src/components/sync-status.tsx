@@ -20,25 +20,31 @@ function useOnline() {
 export function SyncStatus() {
   const online = useOnline();
   const queueCount = useLiveQuery(() => db.sync_queue.count(), [], 0);
+  const [expanded, setExpanded] = useState(false);
 
   let color = 'var(--color-text-muted)';
-  let title = 'Offline';
+  let label = 'Offline';
   if (online && queueCount === 0) {
     color = 'var(--color-green)';
-    title = 'Sincronizado';
+    label = 'Sincronizado';
   } else if (online && queueCount > 0) {
     color = 'var(--color-yellow)';
-    title = `Sincronizando (${queueCount})`;
+    label = `Sincronizando (${queueCount})`;
   } else if (!online && queueCount > 0) {
     color = 'var(--color-red)';
-    title = `Offline com ${queueCount} pendentes`;
+    label = `Offline (${queueCount} pendentes)`;
   }
 
   return (
-    <div
-      className="fixed right-3 top-3 z-50 size-3 rounded-full"
-      style={{ background: color }}
-      title={title}
-    />
+    <button
+      type="button"
+      onClick={() => setExpanded((e) => !e)}
+      title={label}
+      aria-label={`Status de sincronização: ${label}`}
+      className="fixed right-3 top-3 z-50 flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-card)]/80 px-2 py-1 text-[10px] text-[var(--color-text-muted)] backdrop-blur transition-all"
+    >
+      <span className="block size-2 shrink-0 rounded-full" style={{ background: color }} />
+      {expanded && <span className="leading-none">{label}</span>}
+    </button>
   );
 }

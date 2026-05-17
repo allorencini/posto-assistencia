@@ -43,6 +43,9 @@ export function RankingPage() {
   const [dateFrom, setDateFrom] = useState(weeksAgoISO(12));
   const [dateTo, setDateTo] = useState(todayISO());
   const [grupoFilter, setGrupoFilter] = useState<string>('todos');
+  const [sortBy, setSortBy] = useState<'presencas-desc' | 'presencas-asc' | 'nome-asc' | 'nome-desc'>(
+    'presencas-desc',
+  );
 
   const today = todayISO();
 
@@ -95,13 +98,14 @@ export function RankingPage() {
       grouped[g].sort((a, b) => {
         const aCount = presencaCountByPessoa.get(a.id) ?? 0;
         const bCount = presencaCountByPessoa.get(b.id) ?? 0;
-        const aPct = totalChamadas > 0 ? aCount / totalChamadas : 0;
-        const bPct = totalChamadas > 0 ? bCount / totalChamadas : 0;
-        return bPct - aPct || a.nome.localeCompare(b.nome);
+        if (sortBy === 'presencas-desc') return bCount - aCount || a.nome.localeCompare(b.nome);
+        if (sortBy === 'presencas-asc') return aCount - bCount || a.nome.localeCompare(b.nome);
+        if (sortBy === 'nome-asc') return a.nome.localeCompare(b.nome);
+        return b.nome.localeCompare(a.nome);
       }),
     );
     return grouped;
-  }, [rankablePessoas, presencaCountByPessoa, totalChamadas]);
+  }, [rankablePessoas, presencaCountByPessoa, sortBy]);
 
   const entregarCesta = async (pessoaId: string) => {
     try {
@@ -127,7 +131,7 @@ export function RankingPage() {
 
       <div className="space-y-3">
         <div className="flex flex-col gap-2 sm:flex-row">
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <Label htmlFor="ranking-from">De</Label>
             <Input
               id="ranking-from"
@@ -135,9 +139,10 @@ export function RankingPage() {
               value={dateFrom}
               max={dateTo}
               onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full"
             />
           </div>
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <Label htmlFor="ranking-to">Até</Label>
             <Input
               id="ranking-to"
@@ -145,10 +150,21 @@ export function RankingPage() {
               value={dateTo}
               min={dateFrom}
               onChange={(e) => setDateTo(e.target.value)}
+              className="w-full"
             />
           </div>
         </div>
         <FilterPills value={grupoFilter} onChange={setGrupoFilter} options={grupoOptions} />
+        <FilterPills
+          value={sortBy}
+          onChange={(v) => setSortBy(v as typeof sortBy)}
+          options={[
+            { value: 'presencas-desc', label: '↓ Presenças' },
+            { value: 'presencas-asc', label: '↑ Presenças' },
+            { value: 'nome-asc', label: 'A→Z' },
+            { value: 'nome-desc', label: 'Z→A' },
+          ]}
+        />
         <p className="text-sm text-[var(--color-text-muted)]">
           {totalChamadas} chamadas no período
         </p>

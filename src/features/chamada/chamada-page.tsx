@@ -169,7 +169,7 @@ export function ChamadaPage() {
                         className="flex items-center justify-between gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2"
                       >
                         <div className="min-w-0 flex-1">
-                          <div className="truncate">{p.nome}</div>
+                          <div className="break-words leading-tight">{p.nome}</div>
                           {hist.length > 0 && (
                             <div className="mt-1 flex gap-1">
                               {hist.map((h, i) => (

@@ -2,6 +2,8 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmptyState } from '@/components/empty-state';
 import { FilterPills } from '@/components/filter-pills';
 import { SearchInput } from '@/components/search-input';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -37,6 +39,11 @@ export function HistoricoPage() {
   const [grupoFilter, setGrupoFilter] = useState<string>('todos');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [editingChamada, setEditingChamada] = useState<Chamada | null>(null);
+  const [dateFilter, setDateFilter] = useState<'todos' | 'mes-atual' | 'mes-anterior' | 'custom'>(
+    'todos',
+  );
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const papel = useAuth((s) => s.papel);
   const isAdmin = papel === 'admin';
 
@@ -51,10 +58,30 @@ export function HistoricoPage() {
 
   const pessoaMap = useMemo(() => new Map(pessoas.map((p) => [p.id, p])), [pessoas]);
 
-  const chamadasSorted = useMemo(
-    () => [...chamadas].sort((a, b) => b.data.localeCompare(a.data)),
-    [chamadas],
-  );
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    if (dateFilter === 'mes-atual') {
+      return { from: ymd(new Date(y, m, 1)), to: ymd(new Date(y, m + 1, 0)) };
+    }
+    if (dateFilter === 'mes-anterior') {
+      return { from: ymd(new Date(y, m - 1, 1)), to: ymd(new Date(y, m, 0)) };
+    }
+    if (dateFilter === 'custom' && customFrom && customTo) {
+      return { from: customFrom, to: customTo };
+    }
+    return null;
+  }, [dateFilter, customFrom, customTo]);
+
+  const chamadasSorted = useMemo(() => {
+    const filtered = dateRange
+      ? chamadas.filter((c) => c.data >= dateRange.from && c.data <= dateRange.to)
+      : chamadas;
+    return [...filtered].sort((a, b) => b.data.localeCompare(a.data));
+  }, [chamadas, dateRange]);
 
   const presencasByChamada = useMemo(() => {
     const map = new Map<string, Presenca[]>();
@@ -109,6 +136,42 @@ export function HistoricoPage() {
         <>
           <SearchInput value={search} onChange={setSearch} placeholder="Buscar pessoa..." />
           <FilterPills value={grupoFilter} onChange={setGrupoFilter} options={grupoOptions} />
+          <FilterPills
+            value={dateFilter}
+            onChange={(v) => setDateFilter(v as typeof dateFilter)}
+            options={[
+              { value: 'todos', label: 'Todos' },
+              { value: 'mes-atual', label: 'Mês atual' },
+              { value: 'mes-anterior', label: 'Mês anterior' },
+              { value: 'custom', label: 'Período' },
+            ]}
+          />
+          {dateFilter === 'custom' && (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="min-w-0 flex-1">
+                <Label htmlFor="hist-from">De</Label>
+                <Input
+                  id="hist-from"
+                  type="date"
+                  value={customFrom}
+                  max={customTo || undefined}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Label htmlFor="hist-to">Até</Label>
+                <Input
+                  id="hist-to"
+                  type="date"
+                  value={customTo}
+                  min={customFrom || undefined}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          )}
           {chamadasSorted.length === 0 ? (
             <EmptyState icon="📅" title="Nenhuma chamada registrada" />
           ) : (

@@ -83,7 +83,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
+    <div className="flex min-h-[100dvh] items-center justify-center p-6">
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="w-full max-w-sm space-y-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6"

@@ -100,10 +100,24 @@ async function pullChanges(): Promise<void> {
   }
 
   // Paralelizar todos os fetches do server (latência soma ~700ms vs ~3-5s sequencial)
+  // Paginar via .range() pra escapar do cap default de 1000 rows do PostgREST.
+  const PAGE = 1000;
   const fetched = await Promise.all(
     tables.map(async (tableName) => {
-      const { data, error } = await supabase.from(tableName).select('*');
-      return { tableName, data: error || !data ? null : (data as any[]) };
+      const all: any[] = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from(tableName)
+          .select('*')
+          .range(from, from + PAGE - 1);
+        if (error) return { tableName, data: null };
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      return { tableName, data: all };
     }),
   );
 

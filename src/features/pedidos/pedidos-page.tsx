@@ -57,19 +57,18 @@ export function PedidosPage() {
 
   return (
     <div className="space-y-4 p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Pedidos</h1>
-        <Button
-          size="icon"
-          onClick={() => {
-            setEditId(null);
-            setFormOpen(true);
-          }}
-          aria-label="Adicionar"
-        >
-          <Plus className="size-5" />
-        </Button>
-      </div>
+      <h1 className="text-2xl font-semibold">Pedidos</h1>
+      <Button
+        size="lg"
+        onClick={() => {
+          setEditId(null);
+          setFormOpen(true);
+        }}
+        className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white"
+      >
+        <Plus className="mr-2 size-5" />
+        Adicionar
+      </Button>
 
       {byItem.length === 0 ? (
         <EmptyState icon="🎁" title="Sem pedidos pendentes" />

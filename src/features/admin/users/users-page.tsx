@@ -17,12 +17,15 @@ export function UsersPage() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Usuários</h2>
-        <Button size="icon" onClick={() => setFormOpen(true)} aria-label="Adicionar">
-          <Plus className="size-5" />
-        </Button>
-      </div>
+      <h2 className="text-lg font-semibold">Usuários</h2>
+      <Button
+        size="lg"
+        onClick={() => setFormOpen(true)}
+        className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white"
+      >
+        <Plus className="mr-2 size-5" />
+        Adicionar
+      </Button>
 
       {users.length === 0 ? (
         <EmptyState icon="👥" title="Nenhum usuário" />

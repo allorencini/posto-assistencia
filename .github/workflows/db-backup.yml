@@ -2,12 +2,15 @@ name: db-backup
 
 # Backup semanal do Postgres do Supabase. Roda domingo 03:00 UTC (00:00 BRT)
 # e pode ser disparado manualmente. Mantém artifact por 90 dias (free tier).
-# Pra restaurar: baixa o artifact e roda `psql $DATABASE_URL < dump.sql`.
+# Pra restaurar: baixa o artifact e roda `gunzip -c dump.sql.gz | psql ...`.
 #
 # Requisitos (Settings → Secrets and variables → Actions):
-#   SUPABASE_DB_URL — connection string Postgres (formato:
-#     postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres)
-#     Pode pegar em Supabase → Project Settings → Database → Connection string (URI).
+#   SUPABASE_DB_HOST     — ex: aws-1-sa-east-1.pooler.supabase.com  (use Session pooler — IPv4)
+#   SUPABASE_DB_PORT     — 5432
+#   SUPABASE_DB_USER     — ex: postgres.hhtxaeauuutmuwwkotgf
+#   SUPABASE_DB_PASSWORD — senha do banco
+#   SUPABASE_DB_NAME     — postgres
+# Pegar em Supabase → Connect → Session pooler → vista "PSQL" mostra cada campo.
 
 on:
   schedule:
@@ -26,12 +29,18 @@ jobs:
 
       - name: Dump database
         env:
-          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
+          PGPORT: ${{ secrets.SUPABASE_DB_PORT }}
+          PGUSER: ${{ secrets.SUPABASE_DB_USER }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGDATABASE: ${{ secrets.SUPABASE_DB_NAME }}
         run: |
-          if [ -z "$DB_URL" ]; then
-            echo "::error::SUPABASE_DB_URL secret is not configured"
-            exit 1
-          fi
+          for var in PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Secret $var not configured"
+              exit 1
+            fi
+          done
           mkdir -p backup
           STAMP=$(date -u +%Y%m%dT%H%M%SZ)
           pg_dump \
@@ -40,7 +49,6 @@ jobs:
             --schema=public \
             --schema=auth \
             --format=plain \
-            "$DB_URL" \
             | gzip > "backup/presenca-${STAMP}.sql.gz"
           ls -lh backup/
 

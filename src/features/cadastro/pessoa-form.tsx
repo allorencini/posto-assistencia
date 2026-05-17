@@ -213,8 +213,8 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
               <>
                 <div className="border-t border-[var(--color-border)] pt-4">
                   <h4 className="mb-2 text-sm font-semibold">Endereço (admin)</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
                       <Label htmlFor="rua">Rua</Label>
                       <Input id="rua" {...register('rua')} />
                     </div>

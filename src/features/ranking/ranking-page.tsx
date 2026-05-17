@@ -131,7 +131,7 @@ export function RankingPage() {
       </div>
 
       <div className="space-y-3">
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <div className="flex-1">
             <Label htmlFor="ranking-from">De</Label>
             <Input
@@ -185,7 +185,7 @@ export function RankingPage() {
                         {cestaCount > 0 && <span className="ml-2">🧺 {cestaCount}</span>}
                       </div>
                     </div>
-                    <div className="flex shrink-0 gap-1">
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                       <Button
                         size="sm"
                         onClick={() => entregarCesta(p.id)}

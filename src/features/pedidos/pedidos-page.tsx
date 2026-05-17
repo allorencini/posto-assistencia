@@ -104,7 +104,7 @@ export function PedidosPage() {
                               {p.observacao && ` · ${p.observacao}`}
                             </div>
                           </div>
-                          <div className="flex shrink-0 gap-1">
+                          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                             <Button
                               size="icon"
                               variant="ghost"

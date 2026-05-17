@@ -94,7 +94,7 @@ export function EstoquePage() {
                         <div className="min-w-0 flex-1">
                           <div className="truncate font-medium">{i.nome}</div>
                         </div>
-                        <div className="flex shrink-0 items-center gap-1">
+                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                           <Button
                             size="icon"
                             variant="ghost"

@@ -41,11 +41,14 @@ export function LoginPage() {
 
   const onSubmit = async (input: LoginInput) => {
     setError(null);
-    const isEmail = input.login.includes('@');
-    let email = input.login;
+    // Remove qualquer whitespace — mobile autocorrect costuma inserir espaços
+    // em palavras desconhecidas (ex: "simaopedro" → "sim aopedro").
+    const login = input.login.replace(/\s+/g, '');
+    const isEmail = login.includes('@');
+    let email = login;
 
     if (!isEmail) {
-      const resolved = await resolveUsernameToEmail(input.login.trim());
+      const resolved = await resolveUsernameToEmail(login);
       if (!resolved) {
         setError('Usuário ou senha inválidos');
         return;
@@ -89,7 +92,16 @@ export function LoginPage() {
 
         <div className="space-y-2">
           <Label htmlFor="login">Email ou usuário</Label>
-          <Input id="login" type="text" autoComplete="username" {...register('login')} />
+          <Input
+            id="login"
+            type="text"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            inputMode="email"
+            {...register('login')}
+          />
           {errors.login && (
             <p className="text-sm text-[var(--color-red)]">{errors.login.message}</p>
           )}

@@ -31,3 +31,11 @@ test-results/
 
 # TypeScript
 *.tsbuildinfo
+
+# Supabase CLI working dir (linked-project.json + temp build artifacts)
+supabase/.temp/
+supabase/.branches/
+
+# Plugin caches / scratchpads
+.superpowers/
+.mcp.json

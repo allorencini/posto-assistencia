@@ -2,7 +2,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { env } from '@/lib/env';
+import { startRealtime } from '@/lib/realtime';
 import { supabase } from '@/lib/supabase';
+import { runSync } from '@/lib/sync';
 import { type LoginInput, LoginSchema } from '@/schemas/login';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
@@ -69,6 +71,9 @@ export function LoginPage() {
       return;
     }
     useAuth.getState().setSession(data.user, appUser.papel as Papel);
+    startRealtime();
+    // Espera pull do server completar antes de navegar — evita tela vazia
+    await runSync();
     navigate('/cadastro', { replace: true });
   };
 

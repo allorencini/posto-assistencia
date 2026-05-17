@@ -81,25 +81,30 @@ async function pullChanges(): Promise<void> {
     if (q.data?.id) pendingByTable.get(q.table)!.add(q.data.id as string);
   }
 
-  for (const tableName of tables) {
-    const { data, error } = await supabase.from(tableName).select('*');
-    if (error || !data) continue;
+  // Paralelizar todos os fetches do server (latência soma ~700ms vs ~3-5s sequencial)
+  const fetched = await Promise.all(
+    tables.map(async (tableName) => {
+      const { data, error } = await supabase.from(tableName).select('*');
+      return { tableName, data: error || !data ? null : (data as any[]) };
+    }),
+  );
+
+  for (const { tableName, data } of fetched) {
+    if (!data) continue;
     const table = (db as unknown as Record<string, any>)[tableName];
     if (!table) continue;
 
-    const serverIds = new Set((data as any[]).map((r) => r.id as string));
+    const serverIds = new Set(data.map((r) => r.id as string));
     const pendingIds = pendingByTable.get(tableName) ?? new Set<string>();
 
     await db.transaction('rw', table, async () => {
-      // Upsert server rows
-      for (const row of data as any[]) {
+      for (const row of data) {
         const local = await table.get(row.id);
         const localTs = local?.atualizado_em ?? '';
         if (!local || row.atualizado_em >= localTs) {
           await table.put(row);
         }
       }
-      // Delete local rows that don't exist on server AND not pending push (órfãs)
       const all = (await table.toArray()) as any[];
       for (const local of all) {
         if (!serverIds.has(local.id) && !pendingIds.has(local.id)) {

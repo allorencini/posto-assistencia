@@ -1,7 +1,6 @@
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { useChamadas } from '@/hooks/use-chamada';
-import { useFamilias } from '@/hooks/use-familias';
 import { usePessoas, useSavePessoa } from '@/hooks/use-pessoas';
 import { useAllPresencas } from '@/hooks/use-presencas';
 import { GRUPOS } from '@/schemas/pessoa';
@@ -19,7 +18,6 @@ const GRUPO_LABEL = {
 
 export function RankingPage() {
   const { data: pessoas = [] } = usePessoas();
-  const { data: familias = [] } = useFamilias();
   const { data: presencas = [] } = useAllPresencas();
   const { data: chamadas = [] } = useChamadas();
   const savePessoa = useSavePessoa();
@@ -56,17 +54,6 @@ export function RankingPage() {
     return grouped;
   }, [rankablePessoas, presencaCountByPessoa]);
 
-  const familiasRanking = useMemo(() => {
-    return familias
-      .map((f) => {
-        const members = rankablePessoas.filter((p) => p.familia_id === f.id);
-        const total = members.reduce((acc, m) => acc + (presencaCountByPessoa.get(m.id) ?? 0), 0);
-        return { familia: f, total, memberCount: members.length };
-      })
-      .filter((x) => x.memberCount > 0)
-      .sort((a, b) => b.total - a.total || a.familia.nome.localeCompare(b.familia.nome));
-  }, [familias, rankablePessoas, presencaCountByPessoa]);
-
   return (
     <div className="space-y-6 p-4">
       <div>
@@ -75,35 +62,6 @@ export function RankingPage() {
           {totalChamadas} chamadas registradas
         </p>
       </div>
-
-      <section>
-        <h2 className="mb-2 text-sm font-semibold text-[var(--color-text-muted)]">Famílias</h2>
-        {familiasRanking.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-muted)]">
-            Nenhuma família com membros ativos no ranking.
-          </p>
-        ) : (
-          <ol className="space-y-1">
-            {familiasRanking.map((f, idx) => (
-              <li
-                key={f.familia.id}
-                className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="w-6 text-right font-mono text-[var(--color-text-muted)]">
-                    #{idx + 1}
-                  </span>
-                  <span className="font-medium">{f.familia.nome}</span>
-                  <span className="text-xs text-[var(--color-text-muted)]">
-                    ({f.memberCount} membros)
-                  </span>
-                </span>
-                <span className="font-mono">{f.total}</span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
 
       {GRUPOS.map((g) => {
         const list = byGrupo[g];

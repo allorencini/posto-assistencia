@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useFamilias } from '@/hooks/use-familias';
 import { usePedido, useSavePedido } from '@/hooks/use-pedidos';
 import { usePessoas } from '@/hooks/use-pessoas';
 import { normalize } from '@/lib/normalize';
@@ -28,10 +27,8 @@ interface Props {
 export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
   const { data: existing } = usePedido(pedidoId);
   const { data: pessoas = [] } = usePessoas();
-  const { data: familias = [] } = useFamilias();
   const savePedido = useSavePedido();
 
-  const [destTipo, setDestTipo] = useState<'pessoa' | 'familia'>('pessoa');
   const [destSearch, setDestSearch] = useState('');
 
   const {
@@ -43,26 +40,22 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
     formState: { errors, isSubmitting },
   } = useForm<PedidoInput>({
     resolver: zodResolver(PedidoInputSchema),
-    defaultValues: { pessoa_id: null, familia_id: null, item: '', quantidade: 1, observacao: '' },
+    defaultValues: { pessoa_id: '', item: '', quantidade: 1, observacao: '' },
   });
 
   const pessoa_id = watch('pessoa_id');
-  const familia_id = watch('familia_id');
 
   useEffect(() => {
     if (!open) return;
     if (existing) {
       reset({
-        pessoa_id: existing.pessoa_id,
-        familia_id: existing.familia_id,
+        pessoa_id: existing.pessoa_id ?? '',
         item: existing.item,
         quantidade: existing.quantidade,
         observacao: existing.observacao ?? '',
       });
-      setDestTipo(existing.familia_id ? 'familia' : 'pessoa');
     } else {
-      reset({ pessoa_id: null, familia_id: null, item: '', quantidade: 1, observacao: '' });
-      setDestTipo('pessoa');
+      reset({ pessoa_id: '', item: '', quantidade: 1, observacao: '' });
     }
     setDestSearch('');
   }, [existing, open, reset]);
@@ -70,25 +63,17 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
   const candidates = (() => {
     const norm = normalize(destSearch);
     if (norm === '') return [];
-    if (destTipo === 'pessoa') {
-      return pessoas.filter((p) => normalize(p.nome).includes(norm)).slice(0, 8);
-    }
-    return familias.filter((f) => normalize(f.nome).includes(norm)).slice(0, 8);
+    return pessoas.filter((p) => normalize(p.nome).includes(norm)).slice(0, 8);
   })();
 
-  const selectedName = (() => {
-    if (destTipo === 'pessoa' && pessoa_id) return pessoas.find((p) => p.id === pessoa_id)?.nome;
-    if (destTipo === 'familia' && familia_id)
-      return familias.find((f) => f.id === familia_id)?.nome;
-    return null;
-  })();
+  const selectedName = pessoa_id ? (pessoas.find((p) => p.id === pessoa_id)?.nome ?? null) : null;
 
   const onSubmit = async (input: PedidoInput) => {
     try {
       await savePedido.mutateAsync({
         id: pedidoId ?? undefined,
-        pessoa_id: destTipo === 'pessoa' ? input.pessoa_id : null,
-        familia_id: destTipo === 'familia' ? input.familia_id : null,
+        pessoa_id: input.pessoa_id,
+        familia_id: null,
         item: input.item,
         quantidade: input.quantidade,
         observacao: input.observacao || null,
@@ -109,42 +94,14 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <Label>Destinatário</Label>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant={destTipo === 'pessoa' ? 'default' : 'secondary'}
-                onClick={() => {
-                  setDestTipo('pessoa');
-                  setValue('familia_id', null);
-                }}
-              >
-                Pessoa
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={destTipo === 'familia' ? 'default' : 'secondary'}
-                onClick={() => {
-                  setDestTipo('familia');
-                  setValue('pessoa_id', null);
-                }}
-              >
-                Família
-              </Button>
-            </div>
-
+            <Label>Pessoa *</Label>
             {selectedName ? (
               <div className="mt-2 flex items-center justify-between rounded border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-1 text-sm">
                 <span>{selectedName}</span>
                 <button
                   type="button"
                   className="text-xs text-[var(--color-text-muted)] hover:underline"
-                  onClick={() => {
-                    if (destTipo === 'pessoa') setValue('pessoa_id', null);
-                    else setValue('familia_id', null);
-                  }}
+                  onClick={() => setValue('pessoa_id', '')}
                 >
                   trocar
                 </button>
@@ -154,7 +111,7 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
                 <SearchInput
                   value={destSearch}
                   onChange={setDestSearch}
-                  placeholder={destTipo === 'pessoa' ? 'Buscar pessoa...' : 'Buscar família...'}
+                  placeholder="Buscar pessoa..."
                   className="mt-2"
                 />
                 {candidates.length > 0 && (
@@ -165,8 +122,7 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
                           type="button"
                           className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-bg-nav)]"
                           onClick={() => {
-                            if (destTipo === 'pessoa') setValue('pessoa_id', c.id);
-                            else setValue('familia_id', c.id);
+                            setValue('pessoa_id', c.id);
                             setDestSearch('');
                           }}
                         >

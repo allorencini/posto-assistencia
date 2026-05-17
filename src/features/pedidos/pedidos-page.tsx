@@ -1,7 +1,6 @@
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmptyState } from '@/components/empty-state';
 import { Button } from '@/components/ui/button';
-import { useFamilias } from '@/hooks/use-familias';
 import { useAtenderPedido, useDeletePedido, usePedidos } from '@/hooks/use-pedidos';
 import { usePessoas } from '@/hooks/use-pessoas';
 import type { Pedido } from '@/types/domain';
@@ -13,12 +12,10 @@ import { PedidoForm } from './pedido-form';
 export function PedidosPage() {
   const { data: pedidos = [] } = usePedidos();
   const { data: pessoas = [] } = usePessoas();
-  const { data: familias = [] } = useFamilias();
   const atender = useAtenderPedido();
   const deletePedido = useDeletePedido();
 
   const pessoaMap = useMemo(() => new Map(pessoas.map((p) => [p.id, p.nome])), [pessoas]);
-  const familiaMap = useMemo(() => new Map(familias.map((f) => [f.id, f.nome])), [familias]);
 
   const pendentes = useMemo(() => pedidos.filter((p) => p.status === 'pendente'), [pedidos]);
   const atendidos = useMemo(() => pedidos.filter((p) => p.status === 'atendido'), [pedidos]);
@@ -39,12 +36,7 @@ export function PedidosPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Pedido | null>(null);
 
-  const destOf = (p: Pedido) =>
-    p.pessoa_id
-      ? pessoaMap.get(p.pessoa_id)
-      : p.familia_id
-        ? `${familiaMap.get(p.familia_id)} (família)`
-        : '?';
+  const destOf = (p: Pedido) => (p.pessoa_id ? (pessoaMap.get(p.pessoa_id) ?? '?') : '?');
 
   const toggle = (key: string) => {
     setOpen((prev) => {

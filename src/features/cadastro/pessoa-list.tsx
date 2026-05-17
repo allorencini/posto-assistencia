@@ -3,7 +3,6 @@ import { EmptyState } from '@/components/empty-state';
 import { FilterPills } from '@/components/filter-pills';
 import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
-import { useFamilias } from '@/hooks/use-familias';
 import { useDeletePessoa, usePessoas } from '@/hooks/use-pessoas';
 import { normalize } from '@/lib/normalize';
 import { GRUPOS } from '@/schemas/pessoa';
@@ -25,13 +24,6 @@ interface Props {
 
 export function PessoaList({ onEdit }: Props) {
   const { data: pessoas = [] } = usePessoas();
-  const { data: familias = [] } = useFamilias();
-  const familiaMap = useMemo(() => {
-    const m = new Map<string, string>();
-    familias.forEach((f) => m.set(f.id, f.nome));
-    return m;
-  }, [familias]);
-
   const deletePessoa = useDeletePessoa();
   const [search, setSearch] = useState('');
   const [grupoFilter, setGrupoFilter] = useState<string>('todos');
@@ -89,11 +81,6 @@ export function PessoaList({ onEdit }: Props) {
                     >
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium">{p.nome}</div>
-                        {p.familia_id && (
-                          <div className="text-xs text-[var(--color-text-muted)]">
-                            Família: {familiaMap.get(p.familia_id) ?? '?'}
-                          </div>
-                        )}
                       </div>
                       <div className="flex shrink-0 gap-1">
                         <Button

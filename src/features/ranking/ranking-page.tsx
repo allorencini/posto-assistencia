@@ -217,8 +217,9 @@ export function RankingPage() {
           if (!v) setToHide(null);
         }}
         title={`Excluir ${toHide?.nome ?? ''} do ranking?`}
-        description="Não aparece mais aqui. Presença e cestas continuam normais. Reverter via cadastro."
-        confirmLabel="Excluir"
+        description="Não aparece mais aqui. Presença e cestas continuam normais. Reverter via cadastro → editar pessoa → desmarcar Excluir do ranking."
+        variant="destructive"
+        confirmLabel="Excluir do ranking"
         onConfirm={async () => {
           if (!toHide) return;
           try {

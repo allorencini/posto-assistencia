@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { runSync } from '@/lib/sync';
 import { type LoginInput, LoginSchema } from '@/schemas/login';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +30,7 @@ async function resolveUsernameToEmail(username: string): Promise<string | null> 
 export function LoginPage() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [showSenha, setShowSenha] = useState(false);
   const {
     register,
     handleSubmit,
@@ -95,12 +97,24 @@ export function LoginPage() {
 
         <div className="space-y-2">
           <Label htmlFor="senha">Senha</Label>
-          <Input
-            id="senha"
-            type="password"
-            autoComplete="current-password"
-            {...register('senha')}
-          />
+          <div className="relative">
+            <Input
+              id="senha"
+              type={showSenha ? 'text' : 'password'}
+              autoComplete="current-password"
+              className="pr-10"
+              {...register('senha')}
+            />
+            <button
+              type="button"
+              onClick={() => setShowSenha((s) => !s)}
+              aria-label={showSenha ? 'Esconder senha' : 'Mostrar senha'}
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+              tabIndex={-1}
+            >
+              {showSenha ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
           {errors.senha && (
             <p className="text-sm text-[var(--color-red)]">{errors.senha.message}</p>
           )}

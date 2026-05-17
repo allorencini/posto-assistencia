@@ -129,11 +129,15 @@ export function ChamadaPage() {
                         <div className="truncate">{p.nome}</div>
                         <Button
                           size="sm"
-                          variant={isPresent ? 'default' : 'secondary'}
                           onClick={() => toggle(p.id)}
                           disabled={!chamadaId}
+                          className={
+                            isPresent
+                              ? 'bg-[var(--color-green)] hover:bg-[var(--color-green)]/90 text-black'
+                              : 'bg-[var(--color-red)] hover:bg-[var(--color-red)]/90 text-white'
+                          }
                         >
-                          {isPresent ? '✓ Presente' : 'Marcar'}
+                          {isPresent ? 'PRESENTE' : 'FALTA'}
                         </Button>
                       </li>
                     );

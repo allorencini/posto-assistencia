@@ -57,6 +57,7 @@ ALTER TABLE pessoas ADD COLUMN familia_id UUID REFERENCES familias(id) ON DELETE
 - Botão `+` adiciona pessoa à lista de membros
 - Lista de membros adicionados com botão ✕ pra remover cada um
 - Ao salvar: cria/atualiza registro em `familias`, atualiza `familia_id` nas pessoas adicionadas e limpa `familia_id` das removidas
+- Toast: "Família cadastrada!" / "Família atualizada!" / "Família removida."
 
 **Card de pessoa no Cadastros:**
 - Linha abaixo do nome mostra `👨‍👩‍👧 Família <nome>` se vinculada
@@ -84,6 +85,7 @@ ALTER TABLE pessoas ADD COLUMN familia_id UUID REFERENCES familias(id) ON DELETE
 - Cria um registro `cestas` para **cada membro** da família na data de hoje
 - Após salvar, botão muda para "Entregue hoje" (disabled) para a família inteira
 - **"Entregue hoje"** (disabled) é exibido se **qualquer membro** já tiver recebido cesta na data de hoje — verificado via `cestasInfo` no carregamento do ranking
+- Toast: "Cesta entregue para família [nome]!"
 
 ---
 

@@ -1,5 +1,6 @@
 import { startRealtime, stopRealtime } from '@/lib/realtime';
 import { supabase } from '@/lib/supabase';
+import { runSync } from '@/lib/sync';
 import { type Papel, useAuth } from './useAuth';
 
 export async function bootstrapAuth() {
@@ -29,6 +30,9 @@ export async function bootstrapAuth() {
 
   useAuth.getState().setSession(session.user, appUser.papel as Papel);
   startRealtime();
+  // Force fresh pull from server right after login (push pending + pull all tables).
+  // Critical for first login on a device — otherwise IndexedDB is empty until 30s interval.
+  void runSync();
 
   (supabase.from('app_users') as any)
     .update({ ultimo_login_em: new Date().toISOString() })

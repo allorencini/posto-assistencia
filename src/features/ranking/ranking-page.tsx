@@ -1,5 +1,9 @@
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { FilterPills } from '@/components/filter-pills';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useCestas, useSaveCesta } from '@/hooks/use-cestas';
 import { useChamadas } from '@/hooks/use-chamada';
 import { usePessoas, useSavePessoa } from '@/hooks/use-pessoas';
 import { useAllPresencas } from '@/hooks/use-presencas';
@@ -16,23 +20,71 @@ const GRUPO_LABEL = {
   gestante: 'Gestantes',
 } as const;
 
+function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function weeksAgoISO(weeks: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - weeks * 7);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export function RankingPage() {
   const { data: pessoas = [] } = usePessoas();
   const { data: presencas = [] } = useAllPresencas();
   const { data: chamadas = [] } = useChamadas();
+  const { data: cestas = [] } = useCestas();
   const savePessoa = useSavePessoa();
+  const saveCesta = useSaveCesta();
 
   const [toHide, setToHide] = useState<Pessoa | null>(null);
+  const [dateFrom, setDateFrom] = useState(weeksAgoISO(12));
+  const [dateTo, setDateTo] = useState(todayISO());
+  const [grupoFilter, setGrupoFilter] = useState<string>('todos');
 
-  const totalChamadas = chamadas.length;
+  const today = todayISO();
+
+  const chamadasInRange = useMemo(
+    () => chamadas.filter((c) => c.data >= dateFrom && c.data <= dateTo),
+    [chamadas, dateFrom, dateTo],
+  );
+
+  const chamadaIdsSet = useMemo(
+    () => new Set(chamadasInRange.map((c) => c.id)),
+    [chamadasInRange],
+  );
+
+  const totalChamadas = chamadasInRange.length;
 
   const presencaCountByPessoa = useMemo(() => {
     const map = new Map<string, number>();
     presencas.forEach((p) => {
-      if (p.presente) map.set(p.pessoa_id, (map.get(p.pessoa_id) ?? 0) + 1);
+      if (p.presente && chamadaIdsSet.has(p.chamada_id)) {
+        map.set(p.pessoa_id, (map.get(p.pessoa_id) ?? 0) + 1);
+      }
     });
     return map;
-  }, [presencas]);
+  }, [presencas, chamadaIdsSet]);
+
+  const cestasCountByPessoa = useMemo(() => {
+    const map = new Map<string, number>();
+    cestas.forEach((c) => {
+      if (c.ativo !== false && c.data >= dateFrom && c.data <= dateTo) {
+        map.set(c.pessoa_id, (map.get(c.pessoa_id) ?? 0) + 1);
+      }
+    });
+    return map;
+  }, [cestas, dateFrom, dateTo]);
+
+  const cestaTodaySet = useMemo(
+    () =>
+      new Set(
+        cestas.filter((c) => c.ativo !== false && c.data === today).map((c) => c.pessoa_id),
+      ),
+    [cestas, today],
+  );
 
   const rankablePessoas = useMemo(() => pessoas.filter((p) => !p.excluir_ranking), [pessoas]);
 
@@ -45,25 +97,69 @@ export function RankingPage() {
       if (grouped[p.grupo]) grouped[p.grupo].push(p);
     });
     GRUPOS.forEach((g) =>
-      grouped[g].sort(
-        (a, b) =>
-          (presencaCountByPessoa.get(b.id) ?? 0) - (presencaCountByPessoa.get(a.id) ?? 0) ||
-          a.nome.localeCompare(b.nome),
-      ),
+      grouped[g].sort((a, b) => {
+        const aCount = presencaCountByPessoa.get(a.id) ?? 0;
+        const bCount = presencaCountByPessoa.get(b.id) ?? 0;
+        const aPct = totalChamadas > 0 ? aCount / totalChamadas : 0;
+        const bPct = totalChamadas > 0 ? bCount / totalChamadas : 0;
+        return bPct - aPct || a.nome.localeCompare(b.nome);
+      }),
     );
     return grouped;
-  }, [rankablePessoas, presencaCountByPessoa]);
+  }, [rankablePessoas, presencaCountByPessoa, totalChamadas]);
+
+  const entregarCesta = async (pessoaId: string) => {
+    try {
+      await saveCesta.mutateAsync({ pessoa_id: pessoaId, data: today });
+      toast.success('Cesta registrada');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro');
+    }
+  };
+
+  const grupoOptions = [
+    { value: 'todos', label: 'Todos' },
+    ...GRUPOS.map((g) => ({ value: g, label: GRUPO_LABEL[g] })),
+  ];
+
+  const visibleGrupos = GRUPOS.filter((g) => grupoFilter === 'todos' || grupoFilter === g);
 
   return (
     <div className="space-y-6 p-4">
       <div>
         <h1 className="text-2xl font-semibold">Ranking</h1>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Label htmlFor="ranking-from">De</Label>
+            <Input
+              id="ranking-from"
+              type="date"
+              value={dateFrom}
+              max={dateTo}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+          <div className="flex-1">
+            <Label htmlFor="ranking-to">Até</Label>
+            <Input
+              id="ranking-to"
+              type="date"
+              value={dateTo}
+              min={dateFrom}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
+        </div>
+        <FilterPills value={grupoFilter} onChange={setGrupoFilter} options={grupoOptions} />
         <p className="text-sm text-[var(--color-text-muted)]">
-          {totalChamadas} chamadas registradas
+          {totalChamadas} chamadas no período
         </p>
       </div>
 
-      {GRUPOS.map((g) => {
+      {visibleGrupos.map((g) => {
         const list = byGrupo[g];
         if (list.length === 0) return null;
         return (
@@ -72,21 +168,32 @@ export function RankingPage() {
               {GRUPO_LABEL[g]} ({list.length})
             </h2>
             <ol className="space-y-1">
-              {list.map((p, idx) => {
+              {list.map((p) => {
                 const count = presencaCountByPessoa.get(p.id) ?? 0;
+                const pct = totalChamadas > 0 ? Math.round((count / totalChamadas) * 100) : 0;
+                const cestaCount = cestasCountByPessoa.get(p.id) ?? 0;
+                const recebeuHoje = cestaTodaySet.has(p.id);
                 return (
                   <li
                     key={p.id}
-                    className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2"
+                    className="flex items-center justify-between gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2"
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="w-6 text-right font-mono text-[var(--color-text-muted)]">
-                        #{idx + 1}
-                      </span>
-                      <span className="font-medium">{p.nome}</span>
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="font-mono">{count}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">{p.nome}</div>
+                      <div className="text-xs text-[var(--color-text-muted)]">
+                        {count}/{totalChamadas} · {pct}%
+                        {cestaCount > 0 && <span className="ml-2">🧺 {cestaCount}</span>}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        size="sm"
+                        onClick={() => entregarCesta(p.id)}
+                        disabled={recebeuHoje || saveCesta.isPending}
+                        variant={recebeuHoje ? 'secondary' : 'default'}
+                      >
+                        {recebeuHoje ? '✓ Hoje' : 'Cesta'}
+                      </Button>
                       <Button
                         size="icon"
                         variant="ghost"
@@ -95,7 +202,7 @@ export function RankingPage() {
                       >
                         <X className="size-4 text-[var(--color-red)]" />
                       </Button>
-                    </span>
+                    </div>
                   </li>
                 );
               })}

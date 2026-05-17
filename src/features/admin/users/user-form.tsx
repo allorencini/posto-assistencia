@@ -67,12 +67,18 @@ export function UserForm({ open, onOpenChange }: Props) {
           </div>
           <div>
             <Label htmlFor="username">Usuário (login) *</Label>
-            <Input id="username" {...register('username')} autoComplete="off" placeholder="ex: maria.silva" />
+            <Input
+              id="username"
+              {...register('username')}
+              autoComplete="off"
+              placeholder="ex: maria.silva"
+            />
             {errors.username && (
               <p className="text-sm text-[var(--color-red)]">{errors.username.message}</p>
             )}
             <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-              Letras, números, ponto, hífen ou underline. Usuário poderá logar com isso ou com o email.
+              Letras, números, ponto, hífen ou underline. Usuário poderá logar com isso ou com o
+              email.
             </p>
           </div>
           <div>

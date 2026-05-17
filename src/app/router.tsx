@@ -1,14 +1,12 @@
 import { LoginPage } from '@/features/auth/login';
 import { RequireRole } from '@/features/auth/require-role';
-import { lazy, Suspense, type ComponentType } from 'react';
+import { type ComponentType, Suspense, lazy } from 'react';
 import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { AppShell } from './shell';
 
 // Pages com named export — wrap pra obter `default` esperado por React.lazy
-const lazyNamed = <T extends string>(
-  loader: () => Promise<Record<T, ComponentType>>,
-  name: T,
-) => lazy(async () => ({ default: (await loader())[name] }));
+const lazyNamed = <T extends string>(loader: () => Promise<Record<T, ComponentType>>, name: T) =>
+  lazy(async () => ({ default: (await loader())[name] }));
 
 const CadastroPage = lazyNamed(() => import('@/pages/cadastro'), 'CadastroPage');
 const ChamadaPage = lazyNamed(() => import('@/pages/chamada'), 'ChamadaPage');
@@ -20,23 +18,11 @@ const PrivacidadePage = lazyNamed(() => import('@/pages/privacidade'), 'Privacid
 const NotFoundPage = lazyNamed(() => import('@/pages/not-found'), 'NotFoundPage');
 
 const AdminPage = lazyNamed(() => import('@/pages/admin'), 'AdminPage');
-const UsersPage = lazyNamed(
-  () => import('@/features/admin/users/users-page'),
-  'UsersPage',
-);
-const AuditPage = lazyNamed(
-  () => import('@/features/admin/audit/audit-page'),
-  'AuditPage',
-);
+const UsersPage = lazyNamed(() => import('@/features/admin/users/users-page'), 'UsersPage');
+const AuditPage = lazyNamed(() => import('@/features/admin/audit/audit-page'), 'AuditPage');
 const LgpdPage = lazyNamed(() => import('@/features/admin/lgpd/lgpd-page'), 'LgpdPage');
-const TermosPage = lazyNamed(
-  () => import('@/features/admin/termos/termos-page'),
-  'TermosPage',
-);
-const ResyncPage = lazyNamed(
-  () => import('@/features/admin/resync/resync-page'),
-  'ResyncPage',
-);
+const TermosPage = lazyNamed(() => import('@/features/admin/termos/termos-page'), 'TermosPage');
+const ResyncPage = lazyNamed(() => import('@/features/admin/resync/resync-page'), 'ResyncPage');
 
 function PageFallback() {
   return (
@@ -68,9 +54,7 @@ const router = createBrowserRouter([
       { path: 'pedidos', element: wrap(<PedidosPage />) },
       {
         path: 'admin',
-        element: (
-          <RequireRole role="admin">{wrap(<AdminPage />)}</RequireRole>
-        ),
+        element: <RequireRole role="admin">{wrap(<AdminPage />)}</RequireRole>,
         children: [
           { index: true, element: <Navigate to="usuarios" replace /> },
           { path: 'usuarios', element: wrap(<UsersPage />) },

@@ -34,7 +34,9 @@ export function useGetOrCreateChamada() {
       // Preferir a mais antiga (server-side criada via cron/SQL bulk), deletar órfãs locais.
       const all = await db.chamadas.where('data').equals(data).toArray();
       if (all.length > 0) {
-        const sorted = [...all].sort((a, b) => (a.criado_em ?? '').localeCompare(b.criado_em ?? ''));
+        const sorted = [...all].sort((a, b) =>
+          (a.criado_em ?? '').localeCompare(b.criado_em ?? ''),
+        );
         const keep = sorted[0];
         const orphans = sorted.slice(1);
         if (orphans.length > 0) {

@@ -126,9 +126,7 @@ export function HistoricoPage() {
                       : (grupoFilter === 'todos' || pessoa.grupo === grupoFilter) &&
                         (!norm || normalize(pessoa.nome).includes(norm)),
                   )
-                  .sort((a, b) =>
-                    (a.pessoa?.nome ?? '￿').localeCompare(b.pessoa?.nome ?? '￿'),
-                  );
+                  .sort((a, b) => (a.pessoa?.nome ?? '￿').localeCompare(b.pessoa?.nome ?? '￿'));
                 return (
                   <li
                     key={c.id}
@@ -356,9 +354,7 @@ function ChamadaEditDialog({
         </DialogHeader>
         <ul className="space-y-1">
           {filteredPessoas.length === 0 ? (
-            <li className="text-sm text-[var(--color-text-muted)]">
-              Nenhuma pessoa nos filtros.
-            </li>
+            <li className="text-sm text-[var(--color-text-muted)]">Nenhuma pessoa nos filtros.</li>
           ) : (
             filteredPessoas.map((p) => {
               const isPresent = presentMap.get(p.id) ?? false;

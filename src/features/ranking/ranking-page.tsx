@@ -51,10 +51,7 @@ export function RankingPage() {
     [chamadas, dateFrom, dateTo],
   );
 
-  const chamadaIdsSet = useMemo(
-    () => new Set(chamadasInRange.map((c) => c.id)),
-    [chamadasInRange],
-  );
+  const chamadaIdsSet = useMemo(() => new Set(chamadasInRange.map((c) => c.id)), [chamadasInRange]);
 
   const totalChamadas = chamadasInRange.length;
 
@@ -80,9 +77,7 @@ export function RankingPage() {
 
   const cestaTodaySet = useMemo(
     () =>
-      new Set(
-        cestas.filter((c) => c.ativo !== false && c.data === today).map((c) => c.pessoa_id),
-      ),
+      new Set(cestas.filter((c) => c.ativo !== false && c.data === today).map((c) => c.pessoa_id)),
     [cestas, today],
   );
 

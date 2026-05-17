@@ -78,14 +78,10 @@ export function ResyncPage() {
       <div className="space-y-3 rounded-md border border-[var(--color-red)]/50 bg-[var(--color-bg-card)] p-4">
         <h3 className="font-medium text-[var(--color-red)]">Apagar cache local</h3>
         <p className="text-sm text-[var(--color-text-muted)]">
-          Apaga o banco IndexedDB deste navegador e recarrega a página. Após o login os dados
-          são re-baixados do servidor. Use quando a sincronização normal não resolver.
+          Apaga o banco IndexedDB deste navegador e recarrega a página. Após o login os dados são
+          re-baixados do servidor. Use quando a sincronização normal não resolver.
         </p>
-        <Button
-          variant="destructive"
-          onClick={wipeAndReload}
-          disabled={wiping}
-        >
+        <Button variant="destructive" onClick={wipeAndReload} disabled={wiping}>
           {wiping ? 'Apagando…' : 'Apagar cache e recarregar'}
         </Button>
       </div>

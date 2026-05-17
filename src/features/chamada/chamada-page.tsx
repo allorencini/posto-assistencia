@@ -100,8 +100,7 @@ export function ChamadaPage() {
     list.forEach((p) => {
       if (grouped[p.grupo]) grouped[p.grupo].push(p);
     });
-    const isFourFaltas = (hist: HistMark[]) =>
-      hist.length === 4 && hist.every((h) => h === 'F');
+    const isFourFaltas = (hist: HistMark[]) => hist.length === 4 && hist.every((h) => h === 'F');
     const sortKey = (p: (typeof pessoas)[number]) =>
       isFourFaltas(historicoMap.get(p.id) ?? []) ? 1 : 0;
     GRUPOS.forEach((g) =>

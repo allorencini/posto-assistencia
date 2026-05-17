@@ -2,6 +2,7 @@ import { LoginPage } from '@/features/auth/login';
 import { RequireRole } from '@/features/auth/require-role';
 import { AuditPage } from '@/features/admin/audit/audit-page';
 import { LgpdPage } from '@/features/admin/lgpd/lgpd-page';
+import { ResyncPage } from '@/features/admin/resync/resync-page';
 import { TermosPage } from '@/features/admin/termos/termos-page';
 import { UsersPage } from '@/features/admin/users/users-page';
 import { AdminPage } from '@/pages/admin';
@@ -47,6 +48,7 @@ const router = createBrowserRouter([
           { path: 'audit', element: <AuditPage /> },
           { path: 'lgpd', element: <LgpdPage /> },
           { path: 'termos', element: <TermosPage /> },
+          { path: 'resync', element: <ResyncPage /> },
         ],
       },
     ],

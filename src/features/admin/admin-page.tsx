@@ -6,6 +6,7 @@ const tabs = [
   { to: 'audit', label: 'Audit log' },
   { to: 'lgpd', label: 'LGPD' },
   { to: 'termos', label: 'Termos' },
+  { to: 'resync', label: 'Sincronização' },
 ];
 
 export function AdminPage() {

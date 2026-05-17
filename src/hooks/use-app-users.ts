@@ -13,6 +13,8 @@ export function useAppUsers() {
       if (error) throw error;
       return data ?? [];
     },
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 }
 

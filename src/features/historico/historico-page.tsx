@@ -129,12 +129,15 @@ export function HistoricoPage() {
                 const presentList = list.filter((p) => p.presente);
                 const visiblePeople = presentList
                   .map((p) => ({ presenca: p, pessoa: pessoaMap.get(p.pessoa_id) }))
-                  .filter(({ pessoa }) => !!pessoa)
-                  .filter(
-                    ({ pessoa }) => grupoFilter === 'todos' || pessoa!.grupo === grupoFilter,
+                  .filter(({ pessoa }) =>
+                    !pessoa
+                      ? grupoFilter === 'todos' && !norm
+                      : (grupoFilter === 'todos' || pessoa.grupo === grupoFilter) &&
+                        (!norm || normalize(pessoa.nome).includes(norm)),
                   )
-                  .filter(({ pessoa }) => !norm || normalize(pessoa!.nome).includes(norm))
-                  .sort((a, b) => a.pessoa!.nome.localeCompare(b.pessoa!.nome));
+                  .sort((a, b) =>
+                    (a.pessoa?.nome ?? '￿').localeCompare(b.pessoa?.nome ?? '￿'),
+                  );
                 return (
                   <li
                     key={c.id}
@@ -195,7 +198,14 @@ export function HistoricoPage() {
                               key={presenca.id}
                               className="flex items-center justify-between truncate"
                             >
-                              <span className="truncate">• {pessoa!.nome}</span>
+                              <span className="truncate">
+                                •{' '}
+                                {pessoa?.nome ?? (
+                                  <span className="italic text-[var(--color-text-muted)]">
+                                    Pessoa não sincronizada ({presenca.pessoa_id.slice(0, 8)})
+                                  </span>
+                                )}
+                              </span>
                               <span
                                 className="text-xs text-[var(--color-text-muted)]"
                                 aria-label="presente"

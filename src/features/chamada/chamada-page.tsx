@@ -86,9 +86,6 @@ export function ChamadaPage() {
     return map;
   }, [allPresencas, pessoas, last4Chamadas]);
 
-  const hasFourFaltasSeguidas = (hist: HistMark[]): boolean =>
-    hist.length === 4 && hist.every((h) => h === 'F');
-
   const filteredByGrupo = useMemo(() => {
     const norm = normalize(search);
     const list = pessoas.filter((p) => {
@@ -103,8 +100,10 @@ export function ChamadaPage() {
     list.forEach((p) => {
       if (grouped[p.grupo]) grouped[p.grupo].push(p);
     });
+    const isFourFaltas = (hist: HistMark[]) =>
+      hist.length === 4 && hist.every((h) => h === 'F');
     const sortKey = (p: (typeof pessoas)[number]) =>
-      hasFourFaltasSeguidas(historicoMap.get(p.id) ?? []) ? 1 : 0;
+      isFourFaltas(historicoMap.get(p.id) ?? []) ? 1 : 0;
     GRUPOS.forEach((g) =>
       grouped[g].sort((a, b) => sortKey(a) - sortKey(b) || a.nome.localeCompare(b.nome)),
     );
@@ -192,12 +191,11 @@ export function ChamadaPage() {
                         <Button
                           size="sm"
                           onClick={() => toggle(p.id)}
-                          className={
-                            'w-28 shrink-0 justify-center text-center font-semibold ' +
-                            (isPresent
+                          className={`w-28 shrink-0 justify-center text-center font-semibold ${
+                            isPresent
                               ? 'bg-[var(--color-green)] hover:bg-[var(--color-green)]/90 text-black'
-                              : 'bg-[var(--color-red)] hover:bg-[var(--color-red)]/90 text-white')
-                          }
+                              : 'bg-[var(--color-red)] hover:bg-[var(--color-red)]/90 text-white'
+                          }`}
                         >
                           {isPresent ? 'PRESENTE' : 'FALTA'}
                         </Button>

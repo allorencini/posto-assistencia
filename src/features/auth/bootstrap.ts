@@ -34,7 +34,8 @@ export async function bootstrapAuth() {
   // Critical for first login on a device — otherwise IndexedDB is empty until 30s interval.
   void runSync();
 
-  (supabase.from('app_users') as any)
+  void supabase
+    .from('app_users')
     .update({ ultimo_login_em: new Date().toISOString() })
     .eq('id', session.user.id);
 

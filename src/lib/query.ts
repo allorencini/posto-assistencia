@@ -6,8 +6,9 @@ export const queryClient = new QueryClient({
       staleTime: 30_000,
       gcTime: 5 * 60_000,
       networkMode: 'offlineFirst',
-      retry: (count, error: any) => {
-        if (error?.status === 401 || error?.status === 403) return false;
+      retry: (count, error) => {
+        const status = (error as { status?: number } | null | undefined)?.status;
+        if (status === 401 || status === 403) return false;
         return count < 3;
       },
     },

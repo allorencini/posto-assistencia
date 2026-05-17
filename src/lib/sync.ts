@@ -1,6 +1,15 @@
 import type { SyncQueueItem } from '@/types/domain';
+import type { Table } from 'dexie';
 import { db } from './db';
 import { supabase } from './supabase';
+
+// Linha mínima comum a todas as tabelas que entram no pull/push:
+// PK string `id`; algumas têm `atualizado_em` (LWW), `chamadas` não tem.
+interface SyncableRow {
+  id: string;
+  atualizado_em?: string;
+}
+type SyncableTable = Table<SyncableRow, string>;
 
 let inProgress = false;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -61,7 +70,11 @@ export async function runSync(): Promise<void> {
               : item.table === 'chamadas'
                 ? 'data'
                 : 'id';
-          const { error } = await supabase.from(item.table).upsert(item.data, { onConflict });
+          // Supabase JS infers a strict per-table payload type, but `item.data` is a
+          // discriminated union — cast via `never` to satisfy each branch's overload.
+          const { error } = await supabase
+            .from(item.table)
+            .upsert(item.data as never, { onConflict });
           if (error) throw error;
         }
         await db.sync_queue.delete(item.id!);
@@ -104,7 +117,7 @@ async function pullChanges(): Promise<void> {
   const PAGE = 1000;
   const fetched = await Promise.all(
     tables.map(async (tableName) => {
-      const all: any[] = [];
+      const all: SyncableRow[] = [];
       let from = 0;
       while (true) {
         const { data, error } = await supabase
@@ -113,7 +126,7 @@ async function pullChanges(): Promise<void> {
           .range(from, from + PAGE - 1);
         if (error) return { tableName, data: null };
         if (!data || data.length === 0) break;
-        all.push(...data);
+        all.push(...(data as SyncableRow[]));
         if (data.length < PAGE) break;
         from += PAGE;
       }
@@ -123,21 +136,22 @@ async function pullChanges(): Promise<void> {
 
   for (const { tableName, data } of fetched) {
     if (!data) continue;
-    const table = (db as unknown as Record<string, any>)[tableName];
-    if (!table) continue;
+    // Dexie.table(name) returns Table<any,any> — narrow para nosso shape comum.
+    const table = db.table(tableName) as SyncableTable;
 
-    const serverIds = new Set(data.map((r) => r.id as string));
+    const serverIds = new Set(data.map((r) => r.id));
     const pendingIds = pendingByTable.get(tableName) ?? new Set<string>();
 
     await db.transaction('rw', table, async () => {
       for (const row of data) {
         const local = await table.get(row.id);
         const localTs = local?.atualizado_em ?? '';
-        if (!local || row.atualizado_em >= localTs) {
+        const rowTs = row.atualizado_em ?? '';
+        if (!local || rowTs >= localTs) {
           await table.put(row);
         }
       }
-      const all = (await table.toArray()) as any[];
+      const all = await table.toArray();
       for (const local of all) {
         if (!serverIds.has(local.id) && !pendingIds.has(local.id)) {
           await table.delete(local.id);

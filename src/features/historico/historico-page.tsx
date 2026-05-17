@@ -372,12 +372,11 @@ function ChamadaEditDialog({
                     size="sm"
                     onClick={() => toggle(p.id)}
                     disabled={savePresenca.isPending}
-                    className={
-                      'w-28 shrink-0 justify-center text-center font-semibold ' +
-                      (isPresent
+                    className={`w-28 shrink-0 justify-center text-center font-semibold ${
+                      isPresent
                         ? 'bg-[var(--color-green)] text-black hover:bg-[var(--color-green)]/90'
-                        : 'bg-[var(--color-red)] text-white hover:bg-[var(--color-red)]/90')
-                    }
+                        : 'bg-[var(--color-red)] text-white hover:bg-[var(--color-red)]/90'
+                    }`}
                   >
                     {isPresent ? 'PRESENTE' : 'FALTA'}
                   </Button>

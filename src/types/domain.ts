@@ -81,19 +81,32 @@ export interface Pedido {
   atualizado_em: string;
 }
 
+export type SyncTable =
+  | 'pessoas'
+  | 'familias'
+  | 'chamadas'
+  | 'presencas'
+  | 'cestas'
+  | 'itens'
+  | 'pedidos'
+  | 'pessoa_consents';
+
+// Linhas vindo de qualquer tabela sincronizável (upsert) ou apenas `{ id }` (delete).
+export type SyncPayload =
+  | Pessoa
+  | Familia
+  | Chamada
+  | Presenca
+  | Cesta
+  | Item
+  | Pedido
+  | { id: string; [k: string]: unknown };
+
 export interface SyncQueueItem {
   id?: number;
-  table:
-    | 'pessoas'
-    | 'familias'
-    | 'chamadas'
-    | 'presencas'
-    | 'cestas'
-    | 'itens'
-    | 'pedidos'
-    | 'pessoa_consents';
+  table: SyncTable;
   operation: 'upsert' | 'delete';
-  data: any;
+  data: SyncPayload;
   user_id: string;
   attempts: number;
   last_error?: string;

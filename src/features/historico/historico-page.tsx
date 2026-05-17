@@ -253,44 +253,18 @@ export function HistoricoPage() {
       {tab === 'cestas' && (
         <>
           <SearchInput value={search} onChange={setSearch} placeholder="Buscar pessoa..." />
-          <ul className="space-y-2">
-            {pessoas
-              .filter((p) => !norm || normalize(p.nome).includes(norm))
-              .filter((p) => (cestasByPessoa.get(p.id)?.length ?? 0) > 0)
-              .sort((a, b) => a.nome.localeCompare(b.nome))
-              .map((p) => {
-                const list = cestasByPessoa.get(p.id) ?? [];
-                return (
-                  <li
-                    key={p.id}
-                    className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
-                  >
-                    <div className="font-medium">{p.nome}</div>
-                    <ul className="mt-1 space-y-0.5 text-xs text-[var(--color-text-muted)]">
-                      {list
-                        .sort((a, b) => b.data.localeCompare(a.data))
-                        .map((c) => (
-                          <li key={c.id} className="flex items-center justify-between">
-                            <span>{c.data}</span>
-                            {isAdmin && (
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  await deleteCesta.mutateAsync(c.id);
-                                  toast.success('Cesta removida');
-                                }}
-                                className="text-[var(--color-red)] hover:underline"
-                              >
-                                remover
-                              </button>
-                            )}
-                          </li>
-                        ))}
-                    </ul>
-                  </li>
-                );
-              })}
-          </ul>
+          <CestasPorData
+            cestas={cestas}
+            pessoaMap={pessoaMap}
+            isAdmin={isAdmin}
+            norm={norm}
+            expanded={expanded}
+            onToggle={toggleExpanded}
+            onRemove={async (id) => {
+              await deleteCesta.mutateAsync(id);
+              toast.success('Cesta removida');
+            }}
+          />
         </>
       )}
 
@@ -426,5 +400,103 @@ function ChamadaEditDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+interface CestasPorDataProps {
+  cestas: ReturnType<typeof useCestas>['data'];
+  pessoaMap: Map<string, Pessoa>;
+  isAdmin: boolean;
+  norm: string;
+  expanded: Set<string>;
+  onToggle: (id: string) => void;
+  onRemove: (id: string) => void | Promise<void>;
+}
+
+function CestasPorData({
+  cestas,
+  pessoaMap,
+  isAdmin,
+  norm,
+  expanded,
+  onToggle,
+  onRemove,
+}: CestasPorDataProps) {
+  const grouped = useMemo(() => {
+    const map = new Map<string, { id: string; pessoa_id: string }[]>();
+    (cestas ?? []).forEach((c) => {
+      if (c.ativo === false) return;
+      if (!map.has(c.data)) map.set(c.data, []);
+      map.get(c.data)!.push({ id: c.id, pessoa_id: c.pessoa_id });
+    });
+    return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [cestas]);
+
+  if (grouped.length === 0) {
+    return <EmptyState icon="🧺" title="Nenhuma cesta entregue" />;
+  }
+
+  return (
+    <ul className="space-y-2">
+      {grouped.map(([data, items]) => {
+        const visible = items
+          .map((it) => ({ ...it, pessoa: pessoaMap.get(it.pessoa_id) }))
+          .filter(({ pessoa }) => !norm || (pessoa && normalize(pessoa.nome).includes(norm)))
+          .sort((a, b) => (a.pessoa?.nome ?? '￿').localeCompare(b.pessoa?.nome ?? '￿'));
+        if (visible.length === 0) return null;
+        const key = `cestas-${data}`;
+        const isExpanded = expanded.has(key);
+        return (
+          <li
+            key={data}
+            className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3"
+          >
+            <button
+              type="button"
+              onClick={() => onToggle(key)}
+              className="flex w-full items-center gap-2 text-left"
+              aria-expanded={isExpanded}
+            >
+              {isExpanded ? (
+                <ChevronDown className="size-4 shrink-0 text-[var(--color-text-muted)]" />
+              ) : (
+                <ChevronRight className="size-4 shrink-0 text-[var(--color-text-muted)]" />
+              )}
+              <div className="flex-1">
+                <div className="font-medium">{data}</div>
+                <div className="text-xs text-[var(--color-text-muted)]">
+                  {visible.length} cesta{visible.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+            </button>
+            {isExpanded && (
+              <ul className="mt-2 space-y-0.5 border-t border-[var(--color-border)] pt-2 text-sm">
+                {visible.map((it) => (
+                  <li key={it.id} className="flex items-center justify-between">
+                    <span className="truncate">
+                      •{' '}
+                      {it.pessoa?.nome ?? (
+                        <span className="italic text-[var(--color-text-muted)]">
+                          Pessoa não sincronizada ({it.pessoa_id.slice(0, 8)})
+                        </span>
+                      )}
+                    </span>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => void onRemove(it.id)}
+                        className="text-[var(--color-red)] hover:underline"
+                      >
+                        remover
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

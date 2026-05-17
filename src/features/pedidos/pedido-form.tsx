@@ -158,7 +158,7 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
                   className="mt-2"
                 />
                 {candidates.length > 0 && (
-                  <ul className="mt-1 max-h-40 overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-bg-card)]">
+                  <ul className="relative z-50 mt-1 max-h-40 overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-lg">
                     {candidates.map((c) => (
                       <li key={c.id}>
                         <button

@@ -44,7 +44,7 @@ export function LgpdPage() {
       />
 
       {candidates.length > 0 && (
-        <ul className="rounded border border-[var(--color-border)] bg-[var(--color-bg-card)]">
+        <ul className="relative z-50 rounded border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-lg">
           {candidates.map((p) => (
             <li key={p.id}>
               <button

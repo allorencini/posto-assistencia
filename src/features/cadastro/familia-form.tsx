@@ -121,7 +121,7 @@ export function FamiliaForm({ open, onOpenChange, familiaId }: Props) {
             <Label>Membros ({membros.length})</Label>
             <SearchInput value={search} onChange={setSearch} placeholder="Adicionar pessoa..." />
             {search.trim() !== '' && candidates.length > 0 && (
-              <ul className="mt-1 max-h-40 overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-bg-card)]">
+              <ul className="relative z-50 mt-1 max-h-40 overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-lg">
                 {candidates.map((p) => (
                   <li key={p.id}>
                     <button

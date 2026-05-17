@@ -1,25 +1,56 @@
 import { LoginPage } from '@/features/auth/login';
 import { RequireRole } from '@/features/auth/require-role';
-import { AuditPage } from '@/features/admin/audit/audit-page';
-import { LgpdPage } from '@/features/admin/lgpd/lgpd-page';
-import { ResyncPage } from '@/features/admin/resync/resync-page';
-import { TermosPage } from '@/features/admin/termos/termos-page';
-import { UsersPage } from '@/features/admin/users/users-page';
-import { AdminPage } from '@/pages/admin';
-import { CadastroPage } from '@/pages/cadastro';
-import { ChamadaPage } from '@/pages/chamada';
-import { EstoquePage } from '@/pages/estoque';
-import { HistoricoPage } from '@/pages/historico';
-import { NotFoundPage } from '@/pages/not-found';
-import { PedidosPage } from '@/pages/pedidos';
-import { PrivacidadePage } from '@/pages/privacidade';
-import { RankingPage } from '@/pages/ranking';
+import { lazy, Suspense, type ComponentType } from 'react';
 import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { AppShell } from './shell';
 
+// Pages com named export — wrap pra obter `default` esperado por React.lazy
+const lazyNamed = <T extends string>(
+  loader: () => Promise<Record<T, ComponentType>>,
+  name: T,
+) => lazy(async () => ({ default: (await loader())[name] }));
+
+const CadastroPage = lazyNamed(() => import('@/pages/cadastro'), 'CadastroPage');
+const ChamadaPage = lazyNamed(() => import('@/pages/chamada'), 'ChamadaPage');
+const HistoricoPage = lazyNamed(() => import('@/pages/historico'), 'HistoricoPage');
+const RankingPage = lazyNamed(() => import('@/pages/ranking'), 'RankingPage');
+const EstoquePage = lazyNamed(() => import('@/pages/estoque'), 'EstoquePage');
+const PedidosPage = lazyNamed(() => import('@/pages/pedidos'), 'PedidosPage');
+const PrivacidadePage = lazyNamed(() => import('@/pages/privacidade'), 'PrivacidadePage');
+const NotFoundPage = lazyNamed(() => import('@/pages/not-found'), 'NotFoundPage');
+
+const AdminPage = lazyNamed(() => import('@/pages/admin'), 'AdminPage');
+const UsersPage = lazyNamed(
+  () => import('@/features/admin/users/users-page'),
+  'UsersPage',
+);
+const AuditPage = lazyNamed(
+  () => import('@/features/admin/audit/audit-page'),
+  'AuditPage',
+);
+const LgpdPage = lazyNamed(() => import('@/features/admin/lgpd/lgpd-page'), 'LgpdPage');
+const TermosPage = lazyNamed(
+  () => import('@/features/admin/termos/termos-page'),
+  'TermosPage',
+);
+const ResyncPage = lazyNamed(
+  () => import('@/features/admin/resync/resync-page'),
+  'ResyncPage',
+);
+
+function PageFallback() {
+  return (
+    <div className="flex h-full min-h-[40vh] items-center justify-center p-6 text-sm text-[var(--color-text-muted)]">
+      Carregando…
+    </div>
+  );
+}
+
+const wrap = (el: React.ReactElement) => <Suspense fallback={<PageFallback />}>{el}</Suspense>;
+
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
-  { path: '/privacidade', element: <PrivacidadePage /> },
+  { path: '/privacidade', element: wrap(<PrivacidadePage />) },
   {
     path: '/',
     element: (
@@ -28,32 +59,30 @@ const router = createBrowserRouter([
       </RequireRole>
     ),
     children: [
-      { index: true, element: <CadastroPage /> },
-      { path: 'cadastro', element: <CadastroPage /> },
-      { path: 'chamada', element: <ChamadaPage /> },
-      { path: 'historico', element: <HistoricoPage /> },
-      { path: 'ranking', element: <RankingPage /> },
-      { path: 'estoque', element: <EstoquePage /> },
-      { path: 'pedidos', element: <PedidosPage /> },
+      { index: true, element: wrap(<CadastroPage />) },
+      { path: 'cadastro', element: wrap(<CadastroPage />) },
+      { path: 'chamada', element: wrap(<ChamadaPage />) },
+      { path: 'historico', element: wrap(<HistoricoPage />) },
+      { path: 'ranking', element: wrap(<RankingPage />) },
+      { path: 'estoque', element: wrap(<EstoquePage />) },
+      { path: 'pedidos', element: wrap(<PedidosPage />) },
       {
         path: 'admin',
         element: (
-          <RequireRole role="admin">
-            <AdminPage />
-          </RequireRole>
+          <RequireRole role="admin">{wrap(<AdminPage />)}</RequireRole>
         ),
         children: [
           { index: true, element: <Navigate to="usuarios" replace /> },
-          { path: 'usuarios', element: <UsersPage /> },
-          { path: 'audit', element: <AuditPage /> },
-          { path: 'lgpd', element: <LgpdPage /> },
-          { path: 'termos', element: <TermosPage /> },
-          { path: 'resync', element: <ResyncPage /> },
+          { path: 'usuarios', element: wrap(<UsersPage />) },
+          { path: 'audit', element: wrap(<AuditPage />) },
+          { path: 'lgpd', element: wrap(<LgpdPage />) },
+          { path: 'termos', element: wrap(<TermosPage />) },
+          { path: 'resync', element: wrap(<ResyncPage />) },
         ],
       },
     ],
   },
-  { path: '*', element: <NotFoundPage /> },
+  { path: '*', element: wrap(<NotFoundPage />) },
 ]);
 
 export function AppRouter() {

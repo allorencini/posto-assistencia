@@ -25,10 +25,30 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
+        cleanupOutdatedCaches: true,
+        // Páginas admin raramente são abertas — não precisam ocupar precache.
+        // Continuam funcionando online via runtime cache (StaleWhileRevalidate).
+        globIgnores: [
+          '**/assets/users-page-*.js',
+          '**/assets/audit-page-*.js',
+          '**/assets/lgpd-page-*.js',
+          '**/assets/termos-page-*.js',
+          '**/assets/resync-page-*.js',
+          '**/assets/admin-*.js',
+          '**/assets/privacidade-*.js',
+        ],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: /\/assets\/(?:users-page|audit-page|lgpd-page|termos-page|resync-page|admin|privacidade)-.*\.js$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'lazy-pages',
+              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
           },
         ],
       },

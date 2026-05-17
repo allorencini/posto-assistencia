@@ -193,9 +193,10 @@ export function ChamadaPage() {
                           onClick={() => toggle(p.id)}
                           disabled={!chamadaId}
                           className={
-                            isPresent
+                            'w-28 shrink-0 justify-center text-center font-semibold ' +
+                            (isPresent
                               ? 'bg-[var(--color-green)] hover:bg-[var(--color-green)]/90 text-black'
-                              : 'bg-[var(--color-red)] hover:bg-[var(--color-red)]/90 text-white'
+                              : 'bg-[var(--color-red)] hover:bg-[var(--color-red)]/90 text-white')
                           }
                         >
                           {isPresent ? 'PRESENTE' : 'FALTA'}

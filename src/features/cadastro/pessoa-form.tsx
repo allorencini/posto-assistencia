@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/features/auth/useAuth';
-import { useFamilias } from '@/hooks/use-familias';
 import { useRegisterConsent } from '@/hooks/use-pessoa-consent';
 import { usePessoa, useSavePessoa } from '@/hooks/use-pessoas';
 import { GRUPOS, type PessoaInput, PessoaInputSchema } from '@/schemas/pessoa';
@@ -42,7 +41,6 @@ const GRUPO_LABEL: Record<(typeof GRUPOS)[number], string> = {
 
 export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
   const { data: existing } = usePessoa(pessoaId);
-  const { data: familias = [] } = useFamilias();
   const savePessoa = useSavePessoa();
   const registerConsent = useRegisterConsent();
   const papel = useAuth((s) => s.papel);
@@ -57,6 +55,7 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
     control,
     reset,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<PessoaInput>({
     resolver: zodResolver(PessoaInputSchema),
@@ -77,6 +76,16 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
       consent_declarado: false,
     },
   });
+
+  const visitada = watch('visitada');
+  const aptaCesta = watch('apta_cesta');
+
+  useEffect(() => {
+    if (!visitada) {
+      setValue('apta_cesta', null);
+      setValue('visita_obs', '');
+    }
+  }, [visitada, setValue]);
 
   useEffect(() => {
     if (!open) return;
@@ -200,32 +209,6 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
               )}
             </div>
 
-            <div>
-              <Label>Família</Label>
-              <Controller
-                control={control}
-                name="familia_id"
-                render={({ field }) => (
-                  <Select
-                    value={field.value ?? ''}
-                    onValueChange={(v) => field.onChange(v === '__none' ? '' : v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sem família" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none">Sem família</SelectItem>
-                      {familias.map((f) => (
-                        <SelectItem key={f.id} value={f.id}>
-                          {f.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-
             {isAdmin && (
               <>
                 <div className="border-t border-[var(--color-border)] pt-4">
@@ -273,33 +256,39 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
                     />
                     <span className="text-sm">Pessoa visitada</span>
                   </label>
-                  <div className="mt-2">
-                    <Label>Apta a cesta?</Label>
-                    <Controller
-                      control={control}
-                      name="apta_cesta"
-                      render={({ field }) => (
-                        <Select
-                          value={field.value === true ? 'sim' : field.value === false ? 'nao' : ''}
-                          onValueChange={(v) =>
-                            field.onChange(v === 'sim' ? true : v === 'nao' ? false : null)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="—" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="sim">Sim</SelectItem>
-                            <SelectItem value="nao">Não</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </div>
-                  <div className="mt-2">
-                    <Label htmlFor="visita_obs">Observação visita</Label>
-                    <Input id="visita_obs" {...register('visita_obs')} />
-                  </div>
+                  {visitada && (
+                    <div className="mt-2">
+                      <Label>Apta a cesta?</Label>
+                      <Controller
+                        control={control}
+                        name="apta_cesta"
+                        render={({ field }) => (
+                          <Select
+                            value={
+                              field.value === true ? 'sim' : field.value === false ? 'nao' : ''
+                            }
+                            onValueChange={(v) =>
+                              field.onChange(v === 'sim' ? true : v === 'nao' ? false : null)
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="sim">Sim</SelectItem>
+                              <SelectItem value="nao">Não</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+                  )}
+                  {visitada && aptaCesta === false && (
+                    <div className="mt-2">
+                      <Label htmlFor="visita_obs">Observação visita</Label>
+                      <Input id="visita_obs" {...register('visita_obs')} />
+                    </div>
+                  )}
                 </div>
               </>
             )}

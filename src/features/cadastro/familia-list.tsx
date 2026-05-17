@@ -4,6 +4,7 @@ import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
 import { useDeleteFamilia, useFamilias } from '@/hooks/use-familias';
 import { usePessoas } from '@/hooks/use-pessoas';
+import { normalize } from '@/lib/normalize';
 import type { Familia } from '@/types/domain';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -21,9 +22,9 @@ export function FamiliaList({ onEdit }: Props) {
   const [toDelete, setToDelete] = useState<Familia | null>(null);
 
   const filtered = useMemo(() => {
-    const norm = search.trim().toLowerCase();
+    const norm = normalize(search);
     return familias
-      .filter((f) => !norm || f.nome.toLowerCase().includes(norm))
+      .filter((f) => !norm || normalize(f.nome).includes(norm))
       .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [familias, search]);
 

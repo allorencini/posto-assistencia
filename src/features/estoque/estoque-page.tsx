@@ -5,6 +5,7 @@ import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
 import { ItemForm } from '@/features/cadastro/item-form';
 import { useDeleteItem, useItens, useUpdateItemQuantidade } from '@/hooks/use-itens';
+import { normalize } from '@/lib/normalize';
 import { CATEGORIAS } from '@/schemas/item';
 import type { Item } from '@/types/domain';
 import { Minus, Pencil, Plus, PlusIcon, Trash2 } from 'lucide-react';
@@ -28,10 +29,10 @@ export function EstoquePage() {
   const [toDelete, setToDelete] = useState<Item | null>(null);
 
   const filtered = useMemo(() => {
-    const norm = search.trim().toLowerCase();
+    const norm = normalize(search);
     return itens
       .filter((i) => cat === 'todos' || i.categoria === cat)
-      .filter((i) => !norm || i.nome.toLowerCase().includes(norm))
+      .filter((i) => !norm || normalize(i.nome).includes(norm))
       .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [itens, search, cat]);
 

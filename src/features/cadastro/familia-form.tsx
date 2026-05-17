@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFamilia, useSaveFamilia } from '@/hooks/use-familias';
 import { usePessoas, useSavePessoa } from '@/hooks/use-pessoas';
+import { normalize } from '@/lib/normalize';
 import { type FamiliaInput, FamiliaInputSchema } from '@/schemas/familia';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X } from 'lucide-react';
@@ -59,12 +60,12 @@ export function FamiliaForm({ open, onOpenChange, familiaId }: Props) {
   }, [existing, open, pessoas, reset]);
 
   const candidates = (() => {
-    const norm = search.trim().toLowerCase();
+    const norm = normalize(search);
     return pessoas
       .filter(
         (p) =>
           !membros.find((m) => m.id === p.id) &&
-          (norm === '' || p.nome.toLowerCase().includes(norm)),
+          (norm === '' || normalize(p.nome).includes(norm)),
       )
       .slice(0, 8);
   })();

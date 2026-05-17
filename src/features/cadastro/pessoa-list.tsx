@@ -5,6 +5,7 @@ import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
 import { useFamilias } from '@/hooks/use-familias';
 import { useDeletePessoa, usePessoas } from '@/hooks/use-pessoas';
+import { normalize } from '@/lib/normalize';
 import { GRUPOS } from '@/schemas/pessoa';
 import type { Pessoa } from '@/types/domain';
 import { Pencil, Trash2 } from 'lucide-react';
@@ -37,10 +38,10 @@ export function PessoaList({ onEdit }: Props) {
   const [toDelete, setToDelete] = useState<Pessoa | null>(null);
 
   const grouped = useMemo(() => {
-    const norm = search.trim().toLowerCase();
+    const norm = normalize(search);
     const filtered = pessoas.filter((p) => {
       if (grupoFilter !== 'todos' && p.grupo !== grupoFilter) return false;
-      if (norm && !p.nome.toLowerCase().includes(norm)) return false;
+      if (norm && !normalize(p.nome).includes(norm)) return false;
       return true;
     });
     const map: Record<string, Pessoa[]> = {};

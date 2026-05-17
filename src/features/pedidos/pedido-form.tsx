@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useFamilias } from '@/hooks/use-familias';
 import { usePedido, useSavePedido } from '@/hooks/use-pedidos';
 import { usePessoas } from '@/hooks/use-pessoas';
+import { normalize } from '@/lib/normalize';
 import { type PedidoInput, PedidoInputSchema } from '@/schemas/pedido';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
@@ -67,12 +68,12 @@ export function PedidoForm({ open, onOpenChange, pedidoId }: Props) {
   }, [existing, open, reset]);
 
   const candidates = (() => {
-    const norm = destSearch.trim().toLowerCase();
+    const norm = normalize(destSearch);
     if (norm === '') return [];
     if (destTipo === 'pessoa') {
-      return pessoas.filter((p) => p.nome.toLowerCase().includes(norm)).slice(0, 8);
+      return pessoas.filter((p) => normalize(p.nome).includes(norm)).slice(0, 8);
     }
-    return familias.filter((f) => f.nome.toLowerCase().includes(norm)).slice(0, 8);
+    return familias.filter((f) => normalize(f.nome).includes(norm)).slice(0, 8);
   })();
 
   const selectedName = (() => {

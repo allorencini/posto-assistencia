@@ -8,6 +8,7 @@ import { useCestas, useDeleteCesta } from '@/hooks/use-cestas';
 import { useChamadas, useDeleteChamada } from '@/hooks/use-chamada';
 import { usePessoas } from '@/hooks/use-pessoas';
 import { useAllPresencas } from '@/hooks/use-presencas';
+import { normalize } from '@/lib/normalize';
 import type { Chamada } from '@/types/domain';
 import { Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -66,7 +67,7 @@ export function HistoricoPage() {
     return map;
   }, [cestas]);
 
-  const norm = search.trim().toLowerCase();
+  const norm = normalize(search);
 
   return (
     <div className="space-y-4 p-4">
@@ -137,7 +138,7 @@ export function HistoricoPage() {
       {tab === 'pessoa' && (
         <ul className="space-y-2">
           {pessoas
-            .filter((p) => !norm || p.nome.toLowerCase().includes(norm))
+            .filter((p) => !norm || normalize(p.nome).includes(norm))
             .sort((a, b) => a.nome.localeCompare(b.nome))
             .map((p) => {
               const list = presencasByPessoa.get(p.id) ?? [];
@@ -159,7 +160,7 @@ export function HistoricoPage() {
       {tab === 'cestas' && (
         <ul className="space-y-2">
           {pessoas
-            .filter((p) => !norm || p.nome.toLowerCase().includes(norm))
+            .filter((p) => !norm || normalize(p.nome).includes(norm))
             .filter((p) => (cestasByPessoa.get(p.id)?.length ?? 0) > 0)
             .sort((a, b) => a.nome.localeCompare(b.nome))
             .map((p) => {

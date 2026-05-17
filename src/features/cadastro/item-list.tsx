@@ -4,6 +4,7 @@ import { FilterPills } from '@/components/filter-pills';
 import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
 import { useDeleteItem, useItens } from '@/hooks/use-itens';
+import { normalize } from '@/lib/normalize';
 import { CATEGORIAS } from '@/schemas/item';
 import type { Item } from '@/types/domain';
 import { Pencil, Trash2 } from 'lucide-react';
@@ -28,10 +29,10 @@ export function ItemList({ onEdit }: Props) {
   const [toDelete, setToDelete] = useState<Item | null>(null);
 
   const filtered = useMemo(() => {
-    const norm = search.trim().toLowerCase();
+    const norm = normalize(search);
     return itens
       .filter((i) => cat === 'todos' || i.categoria === cat)
-      .filter((i) => !norm || i.nome.toLowerCase().includes(norm))
+      .filter((i) => !norm || normalize(i.nome).includes(norm))
       .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [itens, search, cat]);
 

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuditLog } from '@/hooks/use-audit-log';
 import { useAnonimizarPessoa, useExportPessoa, useRevogarConsent } from '@/hooks/use-lgpd';
 import { usePessoas } from '@/hooks/use-pessoas';
+import { normalize } from '@/lib/normalize';
 import type { Pessoa } from '@/types/domain';
 import { Ban, ChevronRight, Download, EyeOff } from 'lucide-react';
 import { useState } from 'react';
@@ -25,10 +26,10 @@ export function LgpdPage() {
   });
 
   const candidates = (() => {
-    const norm = search.trim().toLowerCase();
+    const norm = normalize(search);
     if (norm === '') return [];
     return pessoas
-      .filter((p) => p.nome.toLowerCase().includes(norm) || p.telefone?.includes(norm))
+      .filter((p) => normalize(p.nome).includes(norm) || p.telefone?.includes(norm))
       .slice(0, 8);
   })();
 

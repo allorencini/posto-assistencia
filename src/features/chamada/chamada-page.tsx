@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useGetOrCreateChamada } from '@/hooks/use-chamada';
 import { usePessoas } from '@/hooks/use-pessoas';
 import { usePresencasByChamada, useSavePresenca } from '@/hooks/use-presencas';
+import { normalize } from '@/lib/normalize';
 import { GRUPOS } from '@/schemas/pessoa';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -53,10 +54,10 @@ export function ChamadaPage() {
   }, [presencas]);
 
   const filteredByGrupo = useMemo(() => {
-    const norm = search.trim().toLowerCase();
+    const norm = normalize(search);
     const list = pessoas.filter((p) => {
       if (grupoFilter !== 'todos' && p.grupo !== grupoFilter) return false;
-      if (norm && !p.nome.toLowerCase().includes(norm)) return false;
+      if (norm && !normalize(p.nome).includes(norm)) return false;
       return true;
     });
     const grouped: Record<string, typeof pessoas> = {};

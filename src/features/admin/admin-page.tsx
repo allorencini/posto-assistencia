@@ -1,9 +1,5 @@
 import { cn } from '@/lib/cn';
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
-import { AuditPage } from './audit/audit-page';
-import { LgpdPage } from './lgpd/lgpd-page';
-import { TermosPage } from './termos/termos-page';
-import { UsersPage } from './users/users-page';
+import { NavLink, Outlet } from 'react-router-dom';
 
 const tabs = [
   { to: 'usuarios', label: 'Usuários' },
@@ -21,6 +17,7 @@ export function AdminPage() {
           <NavLink
             key={t.to}
             to={t.to}
+            end
             className={({ isActive }) =>
               cn(
                 'rounded-full border px-3 py-1 text-sm',
@@ -34,13 +31,7 @@ export function AdminPage() {
           </NavLink>
         ))}
       </nav>
-      <Routes>
-        <Route index element={<Navigate to="usuarios" replace />} />
-        <Route path="usuarios" element={<UsersPage />} />
-        <Route path="audit" element={<AuditPage />} />
-        <Route path="lgpd" element={<LgpdPage />} />
-        <Route path="termos" element={<TermosPage />} />
-      </Routes>
+      <Outlet />
     </div>
   );
 }

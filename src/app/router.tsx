@@ -1,5 +1,9 @@
 import { LoginPage } from '@/features/auth/login';
 import { RequireRole } from '@/features/auth/require-role';
+import { AuditPage } from '@/features/admin/audit/audit-page';
+import { LgpdPage } from '@/features/admin/lgpd/lgpd-page';
+import { TermosPage } from '@/features/admin/termos/termos-page';
+import { UsersPage } from '@/features/admin/users/users-page';
 import { AdminPage } from '@/pages/admin';
 import { CadastroPage } from '@/pages/cadastro';
 import { ChamadaPage } from '@/pages/chamada';
@@ -9,7 +13,7 @@ import { NotFoundPage } from '@/pages/not-found';
 import { PedidosPage } from '@/pages/pedidos';
 import { PrivacidadePage } from '@/pages/privacidade';
 import { RankingPage } from '@/pages/ranking';
-import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { AppShell } from './shell';
 
 const router = createBrowserRouter([
@@ -31,12 +35,19 @@ const router = createBrowserRouter([
       { path: 'estoque', element: <EstoquePage /> },
       { path: 'pedidos', element: <PedidosPage /> },
       {
-        path: 'admin/*',
+        path: 'admin',
         element: (
           <RequireRole role="admin">
             <AdminPage />
           </RequireRole>
         ),
+        children: [
+          { index: true, element: <Navigate to="usuarios" replace /> },
+          { path: 'usuarios', element: <UsersPage /> },
+          { path: 'audit', element: <AuditPage /> },
+          { path: 'lgpd', element: <LgpdPage /> },
+          { path: 'termos', element: <TermosPage /> },
+        ],
       },
     ],
   },

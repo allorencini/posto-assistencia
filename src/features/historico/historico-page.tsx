@@ -76,15 +76,6 @@ export function HistoricoPage() {
     return map;
   }, [presencas]);
 
-  const cestasByPessoa = useMemo(() => {
-    const map = new Map<string, typeof cestas>();
-    cestas.forEach((c) => {
-      if (!map.has(c.pessoa_id)) map.set(c.pessoa_id, []);
-      map.get(c.pessoa_id)!.push(c);
-    });
-    return map;
-  }, [cestas]);
-
   const norm = normalize(search);
 
   const toggleExpanded = (id: string) => {

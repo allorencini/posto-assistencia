@@ -35,7 +35,7 @@ export function useGetOrCreateChamada() {
 
       const now = new Date().toISOString();
       const chamada: Chamada = {
-        id: `chamada-${data}`,
+        id: crypto.randomUUID(),
         data,
         criado_em: now,
       };

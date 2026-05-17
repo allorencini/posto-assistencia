@@ -20,6 +20,15 @@ export function useSaveCesta() {
     mutationFn: async (input: { pessoa_id: string; data: string }) => {
       const user = useAuth.getState().user;
       if (!user) throw new Error('Not authenticated');
+      // Guard local: já existe cesta ativa pra mesma pessoa+data?
+      const existing = await db.cestas
+        .where('pessoa_id')
+        .equals(input.pessoa_id)
+        .filter((c) => c.data === input.data && c.ativo !== false)
+        .first();
+      if (existing) {
+        throw new Error('Pessoa já recebeu cesta nesta data');
+      }
       const now = new Date().toISOString();
       const cesta: Cesta = {
         id: crypto.randomUUID(),

@@ -1,3 +1,4 @@
+import { startRealtime, stopRealtime } from '@/lib/realtime';
 import { supabase } from '@/lib/supabase';
 import { type Papel, useAuth } from './useAuth';
 
@@ -9,6 +10,7 @@ export async function bootstrapAuth() {
   } = await supabase.auth.getSession();
   if (!session?.user) {
     useAuth.getState().clear();
+    stopRealtime();
     return;
   }
 
@@ -21,10 +23,12 @@ export async function bootstrapAuth() {
   if (error || !appUser || !appUser.ativo) {
     await supabase.auth.signOut();
     useAuth.getState().clear();
+    stopRealtime();
     return;
   }
 
   useAuth.getState().setSession(session.user, appUser.papel as Papel);
+  startRealtime();
 
   (supabase.from('app_users') as any)
     .update({ ultimo_login_em: new Date().toISOString() })
@@ -33,6 +37,7 @@ export async function bootstrapAuth() {
   supabase.auth.onAuthStateChange(async (_event, newSession) => {
     if (!newSession) {
       useAuth.getState().clear();
+      stopRealtime();
       return;
     }
     const { data: u } = await supabase
@@ -42,9 +47,11 @@ export async function bootstrapAuth() {
       .single<{ papel: Papel; ativo: boolean }>();
     if (u?.ativo) {
       useAuth.getState().setSession(newSession.user, u.papel as Papel);
+      startRealtime();
     } else {
       await supabase.auth.signOut();
       useAuth.getState().clear();
+      stopRealtime();
     }
   });
 }

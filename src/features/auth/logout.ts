@@ -1,8 +1,14 @@
 import { db } from '@/lib/db';
+import { stopRealtime } from '@/lib/realtime';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
 
 export async function logout() {
+  try {
+    stopRealtime();
+  } catch {
+    // ignore
+  }
   try {
     await supabase.auth.signOut();
   } catch {

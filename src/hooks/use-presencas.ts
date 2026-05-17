@@ -29,10 +29,13 @@ export function useSavePresenca() {
       const user = useAuth.getState().user;
       if (!user) throw new Error('Not authenticated');
       const now = new Date().toISOString();
-      const id = `presenca-${input.chamada_id}-${input.pessoa_id}`;
-      const existing = await db.presencas.get(id);
+      // Look up existing by composite (chamada_id, pessoa_id) — uses Dexie index [chamada_id+pessoa_id]
+      const existing = await db.presencas
+        .where('[chamada_id+pessoa_id]')
+        .equals([input.chamada_id, input.pessoa_id])
+        .first();
       const presenca: Presenca = {
-        id,
+        id: existing?.id ?? crypto.randomUUID(),
         chamada_id: input.chamada_id,
         pessoa_id: input.pessoa_id,
         presente: input.presente,

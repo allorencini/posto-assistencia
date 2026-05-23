@@ -160,7 +160,20 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto"
+          onPointerDownOutside={(e) => {
+            // Não fecha quando user interage com nested ConsentModal
+            if ((e.target as HTMLElement | null)?.closest('[role="dialog"]')) {
+              e.preventDefault();
+            }
+          }}
+          onInteractOutside={(e) => {
+            if ((e.target as HTMLElement | null)?.closest('[role="dialog"]')) {
+              e.preventDefault();
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{pessoaId ? 'Editar pessoa' : 'Nova pessoa'}</DialogTitle>
           </DialogHeader>

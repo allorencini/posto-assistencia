@@ -1,6 +1,7 @@
 import type {
   Cesta,
   Chamada,
+  ConsentTerm,
   Familia,
   Item,
   Pedido,
@@ -19,6 +20,7 @@ export class PresencaDB extends Dexie {
   itens!: Table<Item, string>;
   pedidos!: Table<Pedido, string>;
   sync_queue!: Table<SyncQueueItem, number>;
+  consent_terms!: Table<ConsentTerm, string>;
 
   constructor() {
     super('presenca-db');
@@ -31,6 +33,9 @@ export class PresencaDB extends Dexie {
       itens: 'id, categoria, ativo',
       pedidos: 'id, pessoa_id, familia_id, status, ativo',
       sync_queue: '++id, timestamp, table',
+    });
+    this.version(2).stores({
+      consent_terms: 'id',
     });
   }
 }

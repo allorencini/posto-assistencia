@@ -1,4 +1,5 @@
 import { useAuth } from '@/features/auth/useAuth';
+import { refreshConsentTermCache } from '@/lib/consent-term-cache';
 import { supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -34,6 +35,7 @@ export function useCreateConsentTerm() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['consent_terms'] });
       qc.invalidateQueries({ queryKey: ['consent_term', 'active'] });
+      void refreshConsentTermCache();
     },
   });
 }

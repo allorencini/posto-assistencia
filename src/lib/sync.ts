@@ -86,6 +86,12 @@ export async function runSync(): Promise<void> {
     const uid = useAuth.getState().user?.id;
     const queue = await db.sync_queue.orderBy('timestamp').toArray();
     for (const item of queue) {
+      // Recheca a sessão a cada item: um logout concorrente (idle timeout, aba duplicada)
+      // pode derrubar `useAuth` no meio deste loop. Sem isso o runSync órfão continua
+      // empurrando com anon key, PostgREST rejeita com code string (RLS) e o item é
+      // classificado como erro permanente — attempts sobe e, após MAX_ATTEMPTS, vira
+      // dead-letter e bloqueia o db.delete() do logout pra sempre.
+      if (!useAuth.getState().user) break;
       if (isDeadItem(item)) continue;
       if (item.user_id !== uid) continue;
       try {

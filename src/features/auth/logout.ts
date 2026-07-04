@@ -19,7 +19,9 @@ export async function logout() {
   try {
     if (typeof navigator === 'undefined' || navigator.onLine) {
       await Promise.race([
-        runSync(),
+        // .catch: se o timeout vence primeiro, este runSync segue rodando em background e
+        // pode rejeitar depois — sem o catch aqui vira unhandled rejection.
+        runSync().catch(() => {}),
         new Promise<void>((resolve) => setTimeout(resolve, SYNC_ON_LOGOUT_TIMEOUT_MS)),
       ]);
     }

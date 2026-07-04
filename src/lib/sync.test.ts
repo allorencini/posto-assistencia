@@ -128,6 +128,51 @@ describe('sync engine', () => {
     expect(item.attempts).toBe(0);
   });
 
+  it('sessão cai no meio do push (logout concorrente): item 2 não é empurrado nem morto', async () => {
+    const id1 = crypto.randomUUID();
+    const id2 = crypto.randomUUID();
+    await db.sync_queue.bulkAdd([
+      {
+        table: 'pessoas',
+        operation: 'upsert',
+        data: { id: id1 },
+        user_id: 'u1',
+        attempts: 0,
+        timestamp: Date.now(),
+      },
+      {
+        table: 'pessoas',
+        operation: 'upsert',
+        data: { id: id2 },
+        user_id: 'u1',
+        attempts: 0,
+        timestamp: Date.now() + 1,
+      },
+    ]);
+    let calls = 0;
+    upsertMock.mockImplementation(() => {
+      calls += 1;
+      if (calls === 1) {
+        // Simula logout concorrente (idle timeout, aba duplicada) terminando
+        // bem no meio do push do item 1.
+        mockUser = null;
+        return Promise.resolve({ error: null });
+      }
+      // Se o loop não rechecar a sessão, chega aqui com anon key: PostgREST
+      // rejeitaria com code string (RLS) → classificado permanente → attempts+1.
+      return Promise.resolve({ error: { code: '42501', message: 'rls sem sessão' } });
+    });
+    const { runSync } = await import('./sync');
+    await runSync();
+    // Sem o break, este runSync órfão empurraria (e mataria) o item 2 também.
+    expect(upsertMock).toHaveBeenCalledTimes(1);
+    const remaining = await db.sync_queue.toArray();
+    expect(remaining).toHaveLength(1);
+    const item2 = remaining.find((q) => (q.data as { id: string }).id === id2);
+    expect(item2).toBeDefined();
+    expect(item2!.attempts).toBe(0);
+  });
+
   it('push só do dono da fila: item de outro usuário (device compartilhado) fica preservado', async () => {
     const idOutro = crypto.randomUUID();
     const idMeu = crypto.randomUUID();

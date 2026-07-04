@@ -1,19 +1,21 @@
-import { supabase } from '@/lib/supabase';
+import { refreshConsentTermCache } from '@/lib/consent-term-cache';
+import { db } from '@/lib/db';
 import { useQuery } from '@tanstack/react-query';
 
 export function useActiveConsentTerm() {
   return useQuery({
     queryKey: ['consent_term', 'active'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('consent_terms')
-        .select('id, versao, texto')
-        .eq('ativo', true)
-        .order('criado_em', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
+      const cached = await db.consent_terms.toArray();
+      if (cached.length > 0) {
+        // Stale-while-revalidate: devolve o cache já e atualiza por trás.
+        void refreshConsentTermCache();
+        return cached[0];
+      }
+      // Primeiro uso neste device: tenta baixar agora (se online).
+      await refreshConsentTermCache();
+      const after = await db.consent_terms.toArray();
+      return after[0] ?? null;
     },
     staleTime: 5 * 60_000,
   });

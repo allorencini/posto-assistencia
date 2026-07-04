@@ -2,8 +2,6 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmptyState } from '@/components/empty-state';
 import { FilterPills } from '@/components/filter-pills';
 import { SearchInput } from '@/components/search-input';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '@/features/auth/useAuth';
 import { useCestas, useDeleteCesta } from '@/hooks/use-cestas';
 import { useChamadas, useDeleteChamada } from '@/hooks/use-chamada';

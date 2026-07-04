@@ -1,3 +1,4 @@
+import { useAuth } from '@/features/auth/useAuth';
 import type { SyncQueueItem } from '@/types/domain';
 import type { Table } from 'dexie';
 import { db } from './db';
@@ -34,22 +35,42 @@ export function scheduleSync(): void {
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const MAX_ATTEMPTS = 5;
+export const MAX_ATTEMPTS = 5;
+
+export function isDeadItem(item: SyncQueueItem): boolean {
+  return item.attempts >= MAX_ATTEMPTS;
+}
+
+export async function retryDeadItems(): Promise<number> {
+  let n = 0;
+  await db.sync_queue
+    .toCollection()
+    .filter((q) => isDeadItem(q))
+    .modify((q) => {
+      q.attempts = 0;
+      q.last_error = undefined;
+      n += 1;
+    });
+  if (n > 0) scheduleSync();
+  return n;
+}
 
 export async function runSync(): Promise<void> {
+  const uid = useAuth.getState().user?.id;
+  if (!uid) return;
   if (inProgress) return;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
   inProgress = true;
 
   try {
-    // Limpa itens órfãos: IDs não-UUID (pre-fix bug) ou já tentados demais
+    // Limpa itens órfãos: IDs não-UUID (lixo do bug pré-fix, irrecuperável por construção).
+    // Itens mortos (attempts >= MAX_ATTEMPTS) NÃO são deletados aqui — vão pra dead-letter
+    // (pulados no loop abaixo) até um retry manual via retryDeadItems().
     const allQueue = await db.sync_queue.toArray();
     const orphanIds = allQueue
       .filter((q) => {
-        if (q.attempts >= MAX_ATTEMPTS) return true;
         const id = q.data?.id;
-        if (id && typeof id === 'string' && !UUID_REGEX.test(id)) return true;
-        return false;
+        return !!(id && typeof id === 'string' && !UUID_REGEX.test(id));
       })
       .map((q) => q.id)
       .filter((id): id is number => typeof id === 'number');
@@ -57,8 +78,23 @@ export async function runSync(): Promise<void> {
       await db.sync_queue.bulkDelete(orphanIds);
     }
 
+    // Device compartilhado: um logout que preserva o Dexie (pendências não sincronizadas)
+    // seguido de login de OUTRO usuário não pode empurrar a fila de A sob a sessão de B —
+    // o item seria atribuído a B e o trigger enforce_operador_fields poderia mutilar
+    // silenciosamente edições de admin. Cada item só é empurrado pelo dono original;
+    // itens de outros usuários ficam preservados na fila (e continuam protegendo as
+    // linhas locais correspondentes via pendingByTable no pull) até o dono logar de novo.
     const queue = await db.sync_queue.orderBy('timestamp').toArray();
     for (const item of queue) {
+      // Recheca a sessão a cada item: um logout concorrente (idle timeout, aba duplicada)
+      // pode derrubar `useAuth` no meio deste loop. Sem isso o runSync órfão continua
+      // empurrando com anon key, PostgREST rejeita com code string (RLS) e o item é
+      // classificado como erro permanente — attempts sobe e, após MAX_ATTEMPTS, vira
+      // dead-letter e bloqueia o db.delete() do logout pra sempre. Compara identidade
+      // (não só truthiness): troca de usuário A→B com o loop vivo também interrompe.
+      if (useAuth.getState().user?.id !== uid) break;
+      if (isDeadItem(item)) continue;
+      if (item.user_id !== uid) continue;
       try {
         if (item.operation === 'delete') {
           const { error } = await supabase.from(item.table).delete().eq('id', item.data.id);
@@ -80,20 +116,32 @@ export async function runSync(): Promise<void> {
         await db.sync_queue.delete(item.id!);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        // Só erro permanente (PostgrestError com `.code` string — RLS, FK, unique) mata o
+        // item (incrementa attempts). Falha transiente (rede: fetch rejeitado sem `.code`)
+        // não pode contar pra dead-letter — só atualiza o diagnóstico.
+        const code = (err as { code?: unknown })?.code;
+        const permanent = typeof code === 'string';
         await db.sync_queue.update(item.id!, {
-          attempts: item.attempts + 1,
+          ...(permanent ? { attempts: item.attempts + 1 } : {}),
           last_error: message,
           attempted_at: Date.now(),
         });
       }
     }
-    await pullChanges();
+    await pullChanges(uid);
   } finally {
     inProgress = false;
   }
 }
 
-async function pullChanges(): Promise<void> {
+// `uid` é o dono da sessão capturado no início do runSync. Um logout concorrente
+// (idle timeout, aba duplicada, ou o teto de 10s do próprio logout) pode derrubar
+// `useAuth` entre o fim do push e o começo do pull, ou no meio do pull em si — sem
+// recheck, pullChanges roda com anon key, RLS devolve 200 [] e o delete-pass abaixo
+// apaga a base local inteira (linhas não-pendentes) achando que o servidor está vazio.
+async function pullChanges(uid: string): Promise<void> {
+  if (useAuth.getState().user?.id !== uid) return;
+
   const tables: SyncQueueItem['table'][] = [
     'familias',
     'pessoas',
@@ -151,7 +199,15 @@ async function pullChanges(): Promise<void> {
           await table.put(row);
         }
       }
+      // Recheca a sessão imediatamente antes do delete-pass: um logout concorrente
+      // pode ter derrubado `useAuth` durante o put-pass acima. Se mudou, pula só o
+      // delete-pass desta tabela — os puts já aplicados são inofensivos (dados reais
+      // do servidor, não lixo de sessão anônima).
+      if (useAuth.getState().user?.id !== uid) return;
       const all = await table.toArray();
+      // Cinto extra: servidor devolveu 0 linhas mas há dado local — mais provável
+      // sinal de RLS/rede degradada que de tabela genuinamente vazia. Não apaga.
+      if (data.length === 0 && all.length > 0) return;
       for (const local of all) {
         if (!serverIds.has(local.id) && !pendingIds.has(local.id)) {
           await table.delete(local.id);
@@ -159,6 +215,8 @@ async function pullChanges(): Promise<void> {
       }
     });
   }
+
+  if (useAuth.getState().user?.id !== uid) return;
 
   // Cleanup presencas com chamada_id órfão (chamada local foi deletada acima)
   const validChamadaIds = new Set((await db.chamadas.toArray()).map((c) => c.id));
@@ -176,7 +234,9 @@ async function pullChanges(): Promise<void> {
   }
 }
 
-if (typeof window !== 'undefined') {
+const g = globalThis as { __presencaSyncTimers?: boolean };
+if (typeof window !== 'undefined' && !g.__presencaSyncTimers) {
+  g.__presencaSyncTimers = true;
   window.addEventListener('online', scheduleSync);
   setInterval(scheduleSync, 30_000);
 }

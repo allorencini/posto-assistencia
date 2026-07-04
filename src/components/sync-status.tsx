@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { MAX_ATTEMPTS } from '@/lib/sync';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 
@@ -20,11 +21,19 @@ function useOnline() {
 export function SyncStatus() {
   const online = useOnline();
   const queueCount = useLiveQuery(() => db.sync_queue.count(), [], 0);
+  const deadCount = useLiveQuery(
+    () => db.sync_queue.filter((q) => q.attempts >= MAX_ATTEMPTS).count(),
+    [],
+    0,
+  );
   const [expanded, setExpanded] = useState(false);
 
   let color = 'var(--color-text-muted)';
   let label = 'Offline';
-  if (online && queueCount === 0) {
+  if (deadCount > 0) {
+    color = 'var(--color-red)';
+    label = `Falha de sincronização (${deadCount}) — abra Admin > Sincronização`;
+  } else if (online && queueCount === 0) {
     color = 'var(--color-green)';
     label = 'Sincronizado';
   } else if (online && queueCount > 0) {

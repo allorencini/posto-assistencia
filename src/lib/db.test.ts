@@ -45,4 +45,16 @@ describe('db (Dexie)', () => {
     const all = await db.sync_queue.toArray();
     expect(all).toHaveLength(1);
   });
+
+  it('consent_terms store exists and round-trips', async () => {
+    await db.consent_terms.put({
+      id: 't1',
+      versao: '1',
+      texto: 'termo de teste',
+      ativo: true,
+      criado_em: '2026-07-03T00:00:00Z',
+    });
+    const got = await db.consent_terms.get('t1');
+    expect(got?.texto).toBe('termo de teste');
+  });
 });

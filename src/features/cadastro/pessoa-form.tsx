@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/features/auth/useAuth';
+import { useActiveConsentTerm } from '@/hooks/use-consent-term';
 import { useRegisterConsent } from '@/hooks/use-pessoa-consent';
 import { usePessoa, useSavePessoa } from '@/hooks/use-pessoas';
 import { GRUPOS, type PessoaInput, PessoaInputSchema } from '@/schemas/pessoa';
@@ -24,7 +25,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { ConsentModal } from './consent-modal';
 
 interface Props {
   open: boolean;
@@ -46,8 +46,9 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
   const papel = useAuth((s) => s.papel);
   const isAdmin = papel === 'admin';
 
-  const [consentOpen, setConsentOpen] = useState(false);
-  const [pendingTermId, setPendingTermId] = useState<string | null>(null);
+  const { data: term, isLoading: termLoading } = useActiveConsentTerm();
+  const termUnavailable = !termLoading && !term;
+  const [termOpen, setTermOpen] = useState(false);
 
   const {
     register,
@@ -144,10 +145,11 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
         visita_obs: input.visita_obs || null,
         excluir_ranking: input.excluir_ranking,
       });
-      if (!pessoaId && pendingTermId) {
+      if (!pessoaId) {
+        if (!term) throw new Error('Termo de consentimento indisponível');
         await registerConsent.mutateAsync({
           pessoa_id: saved.id,
-          consent_term_id: pendingTermId,
+          consent_term_id: term.id,
         });
       }
       toast.success(pessoaId ? 'Pessoa atualizada' : 'Pessoa cadastrada');
@@ -158,222 +160,223 @@ export function PessoaForm({ open, onOpenChange, pessoaId }: Props) {
   };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
-          className="max-h-[90vh] overflow-y-auto"
-          onPointerDownOutside={(e) => {
-            // Não fecha quando user interage com nested ConsentModal
-            if ((e.target as HTMLElement | null)?.closest('[role="dialog"]')) {
-              e.preventDefault();
-            }
-          }}
-          onInteractOutside={(e) => {
-            if ((e.target as HTMLElement | null)?.closest('[role="dialog"]')) {
-              e.preventDefault();
-            }
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>{pessoaId ? 'Editar pessoa' : 'Nova pessoa'}</DialogTitle>
-          </DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{pessoaId ? 'Editar pessoa' : 'Nova pessoa'}</DialogTitle>
+        </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <Label htmlFor="nome">Nome *</Label>
-              <Input id="nome" {...register('nome')} autoComplete="off" />
-              {errors.nome && (
-                <p className="text-sm text-[var(--color-red)]">{errors.nome.message}</p>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div>
+            <Label htmlFor="nome">Nome *</Label>
+            <Input id="nome" {...register('nome')} autoComplete="off" />
+            {errors.nome && (
+              <p className="text-sm text-[var(--color-red)]">{errors.nome.message}</p>
+            )}
+          </div>
+
+          <div>
+            <Label>Grupo *</Label>
+            <Controller
+              control={control}
+              name="grupo"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GRUPOS.map((g) => (
+                      <SelectItem key={g} value={g}>
+                        {GRUPO_LABEL[g]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
-            </div>
+            />
+          </div>
 
-            <div>
-              <Label>Grupo *</Label>
-              <Controller
-                control={control}
-                name="grupo"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {GRUPOS.map((g) => (
-                        <SelectItem key={g} value={g}>
-                          {GRUPO_LABEL[g]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
+          <div>
+            <Label htmlFor="telefone">Telefone</Label>
+            <Input
+              id="telefone"
+              {...register('telefone')}
+              autoComplete="off"
+              placeholder="(11) 99999-9999"
+            />
+            {errors.telefone && (
+              <p className="text-sm text-[var(--color-red)]">{errors.telefone.message}</p>
+            )}
+          </div>
 
-            <div>
-              <Label htmlFor="telefone">Telefone</Label>
-              <Input
-                id="telefone"
-                {...register('telefone')}
-                autoComplete="off"
-                placeholder="(11) 99999-9999"
-              />
-              {errors.telefone && (
-                <p className="text-sm text-[var(--color-red)]">{errors.telefone.message}</p>
-              )}
-            </div>
-
-            {isAdmin && (
-              <>
-                <div className="border-t border-[var(--color-border)] pt-4">
-                  <h4 className="mb-2 text-sm font-semibold">Endereço (admin)</h4>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <Label htmlFor="rua">Rua</Label>
-                      <Input id="rua" {...register('rua')} />
-                    </div>
-                    <div>
-                      <Label htmlFor="numero">Número</Label>
-                      <Input id="numero" {...register('numero')} />
-                    </div>
-                    <div>
-                      <Label htmlFor="complemento">Complemento</Label>
-                      <Input id="complemento" {...register('complemento')} />
-                    </div>
-                    <div>
-                      <Label htmlFor="bairro">Bairro</Label>
-                      <Input id="bairro" {...register('bairro')} />
-                    </div>
-                    <div>
-                      <Label htmlFor="cep">CEP</Label>
-                      <Input id="cep" {...register('cep')} placeholder="00000-000" />
-                      {errors.cep && (
-                        <p className="text-sm text-[var(--color-red)]">{errors.cep.message}</p>
-                      )}
-                    </div>
+          {isAdmin && (
+            <>
+              <div className="border-t border-[var(--color-border)] pt-4">
+                <h4 className="mb-2 text-sm font-semibold">Endereço (admin)</h4>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="rua">Rua</Label>
+                    <Input id="rua" {...register('rua')} />
+                  </div>
+                  <div>
+                    <Label htmlFor="numero">Número</Label>
+                    <Input id="numero" {...register('numero')} />
+                  </div>
+                  <div>
+                    <Label htmlFor="complemento">Complemento</Label>
+                    <Input id="complemento" {...register('complemento')} />
+                  </div>
+                  <div>
+                    <Label htmlFor="bairro">Bairro</Label>
+                    <Input id="bairro" {...register('bairro')} />
+                  </div>
+                  <div>
+                    <Label htmlFor="cep">CEP</Label>
+                    <Input id="cep" {...register('cep')} placeholder="00000-000" />
+                    {errors.cep && (
+                      <p className="text-sm text-[var(--color-red)]">{errors.cep.message}</p>
+                    )}
                   </div>
                 </div>
+              </div>
 
-                <div className="border-t border-[var(--color-border)] pt-4">
-                  <h4 className="mb-2 text-sm font-semibold">Visita social (admin)</h4>
-                  <label htmlFor="visitada-check" className="flex items-center gap-2">
+              <div className="border-t border-[var(--color-border)] pt-4">
+                <h4 className="mb-2 text-sm font-semibold">Visita social (admin)</h4>
+                <label htmlFor="visitada-check" className="flex items-center gap-2">
+                  <Controller
+                    control={control}
+                    name="visitada"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="visitada-check"
+                        checked={field.value}
+                        onCheckedChange={(v) => field.onChange(v === true)}
+                      />
+                    )}
+                  />
+                  <span className="text-sm">Pessoa visitada</span>
+                </label>
+                {visitada && (
+                  <div className="mt-2">
+                    <Label>Apta a cesta?</Label>
                     <Controller
                       control={control}
-                      name="visitada"
+                      name="apta_cesta"
+                      render={({ field }) => (
+                        <Select
+                          value={field.value === true ? 'sim' : field.value === false ? 'nao' : ''}
+                          onValueChange={(v) =>
+                            field.onChange(v === 'sim' ? true : v === 'nao' ? false : null)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sim">Sim</SelectItem>
+                            <SelectItem value="nao">Não</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                )}
+                {visitada && aptaCesta === false && (
+                  <div className="mt-2">
+                    <Label htmlFor="visita_obs">Observação visita</Label>
+                    <Input id="visita_obs" {...register('visita_obs')} />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          <div className="border-t border-[var(--color-border)] pt-4">
+            <label htmlFor="excluir-ranking-check" className="flex items-start gap-2 text-sm">
+              <Controller
+                control={control}
+                name="excluir_ranking"
+                render={({ field }) => (
+                  <Checkbox
+                    id="excluir-ranking-check"
+                    checked={field.value}
+                    onCheckedChange={(v) => field.onChange(v === true)}
+                    className="mt-1"
+                  />
+                )}
+              />
+              <span>
+                Excluir do ranking
+                <span className="block text-xs text-[var(--color-text-muted)]">
+                  Não aparece na lista de ranking. Presença e cestas continuam funcionando.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          {!pessoaId && (
+            <div className="border-t border-[var(--color-border)] pt-4">
+              {termUnavailable ? (
+                <p className="text-sm text-[var(--color-red)]">
+                  Termo de consentimento indisponível — conecte à internet uma vez para baixá-lo.
+                </p>
+              ) : (
+                <>
+                  <label htmlFor="consent-check" className="flex items-start gap-2 text-sm">
+                    <Controller
+                      control={control}
+                      name="consent_declarado"
                       render={({ field }) => (
                         <Checkbox
-                          id="visitada-check"
+                          id="consent-check"
                           checked={field.value}
                           onCheckedChange={(v) => field.onChange(v === true)}
+                          disabled={!term}
+                          className="mt-1"
                         />
                       )}
                     />
-                    <span className="text-sm">Pessoa visitada</span>
+                    <span>
+                      Li o termo ao titular dos dados e ele(a) consentiu verbalmente com o
+                      tratamento.
+                    </span>
                   </label>
-                  {visitada && (
-                    <div className="mt-2">
-                      <Label>Apta a cesta?</Label>
-                      <Controller
-                        control={control}
-                        name="apta_cesta"
-                        render={({ field }) => (
-                          <Select
-                            value={
-                              field.value === true ? 'sim' : field.value === false ? 'nao' : ''
-                            }
-                            onValueChange={(v) =>
-                              field.onChange(v === 'sim' ? true : v === 'nao' ? false : null)
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="—" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="sim">Sim</SelectItem>
-                              <SelectItem value="nao">Não</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
+                  <button
+                    type="button"
+                    onClick={() => setTermOpen((v) => !v)}
+                    className="mt-1 text-xs text-[var(--color-text-muted)] underline"
+                  >
+                    {termOpen ? 'Ocultar termo' : `Ver termo${term ? ` (v${term.versao})` : ''}`}
+                  </button>
+                  {termOpen && term && (
+                    <div className="mt-2 max-h-56 overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3 text-sm leading-relaxed">
+                      <p className="mb-2 text-xs text-[var(--color-text-muted)]">
+                        Versão: {term.versao}
+                      </p>
+                      <p>{term.texto}</p>
                     </div>
                   )}
-                  {visitada && aptaCesta === false && (
-                    <div className="mt-2">
-                      <Label htmlFor="visita_obs">Observação visita</Label>
-                      <Input id="visita_obs" {...register('visita_obs')} />
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            <div className="border-t border-[var(--color-border)] pt-4">
-              <label htmlFor="excluir-ranking-check" className="flex items-start gap-2 text-sm">
-                <Controller
-                  control={control}
-                  name="excluir_ranking"
-                  render={({ field }) => (
-                    <Checkbox
-                      id="excluir-ranking-check"
-                      checked={field.value}
-                      onCheckedChange={(v) => field.onChange(v === true)}
-                      className="mt-1"
-                    />
-                  )}
-                />
-                <span>
-                  Excluir do ranking
-                  <span className="block text-xs text-[var(--color-text-muted)]">
-                    Não aparece na lista de ranking. Presença e cestas continuam funcionando.
-                  </span>
-                </span>
-              </label>
+                </>
+              )}
+              {errors.consent_declarado && (
+                <p className="mt-1 text-sm text-[var(--color-red)]">
+                  {errors.consent_declarado.message}
+                </p>
+              )}
             </div>
+          )}
 
-            {!pessoaId && (
-              <div className="border-t border-[var(--color-border)] pt-4">
-                <Controller
-                  control={control}
-                  name="consent_declarado"
-                  render={({ field }) => (
-                    <Button
-                      type="button"
-                      variant={field.value ? 'default' : 'secondary'}
-                      onClick={() => setConsentOpen(true)}
-                      className="w-full"
-                    >
-                      {field.value ? '✓ Consentimento capturado' : 'Capturar consentimento LGPD *'}
-                    </Button>
-                  )}
-                />
-                {errors.consent_declarado && (
-                  <p className="mt-1 text-sm text-[var(--color-red)]">
-                    {errors.consent_declarado.message}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Salvando...' : 'Salvar'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <ConsentModal
-        open={consentOpen}
-        onOpenChange={setConsentOpen}
-        onAccept={(termId) => {
-          setPendingTermId(termId);
-          setValue('consent_declarado', true, { shouldValidate: true });
-          setConsentOpen(false);
-        }}
-      />
-    </>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

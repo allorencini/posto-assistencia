@@ -43,9 +43,9 @@ export function RankingPage() {
   const [dateFrom, setDateFrom] = useState(weeksAgoISO(12));
   const [dateTo, setDateTo] = useState(todayISO());
   const [grupoFilter, setGrupoFilter] = useState<string>('todos');
-  const [sortBy, setSortBy] = useState<'presencas-desc' | 'presencas-asc' | 'nome-asc' | 'nome-desc'>(
-    'presencas-desc',
-  );
+  const [sortBy, setSortBy] = useState<
+    'presencas-desc' | 'presencas-asc' | 'nome-asc' | 'nome-desc'
+  >('presencas-desc');
 
   const today = todayISO();
 

@@ -32,6 +32,14 @@ export interface Familia {
   atualizado_em: string;
 }
 
+export interface ConsentTerm {
+  id: string;
+  versao: string;
+  texto: string;
+  ativo: boolean;
+  criado_em: string;
+}
+
 export interface Chamada {
   id: string;
   data: string;

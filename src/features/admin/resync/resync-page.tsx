@@ -1,7 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { db } from '@/lib/db';
-import { runSync } from '@/lib/sync';
+import { MAX_ATTEMPTS, retryDeadItems, runSync } from '@/lib/sync';
 import Dexie from 'dexie';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -9,8 +10,15 @@ import { toast } from 'sonner';
 export function ResyncPage() {
   const [pulling, setPulling] = useState(false);
   const [wiping, setWiping] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   const [counts, setCounts] = useState<Record<string, number>>({});
+
+  const deadItems = useLiveQuery(
+    () => db.sync_queue.filter((q) => q.attempts >= MAX_ATTEMPTS).toArray(),
+    [],
+    [],
+  );
 
   const refreshCounts = async () => {
     setCounts({
@@ -30,7 +38,12 @@ export function ResyncPage() {
     try {
       await runSync();
       await refreshCounts();
-      toast.success('Sincronização concluída');
+      const pending = await db.sync_queue.count();
+      if (pending > 0) {
+        toast.warning(`Sincronização executada; ${pending} registro(s) ainda pendentes/com falha`);
+      } else {
+        toast.success('Sincronização concluída');
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao sincronizar');
     } finally {
@@ -38,8 +51,22 @@ export function ResyncPage() {
     }
   };
 
+  const handleRetryDead = async () => {
+    setRetrying(true);
+    try {
+      const n = await retryDeadItems();
+      toast.success(`${n} registro(s) reagendado(s) para nova tentativa`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao reagendar');
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   const wipeAndReload = async () => {
-    if (!window.confirm('Apagar todo o cache local e recarregar?')) return;
+    const pending = await db.sync_queue.count();
+    const msg = `Apagar todo o cache local?${pending > 0 ? ` ATENÇÃO: ${pending} registro(s) NÃO ENVIADOS serão perdidos.` : ''}`;
+    if (!window.confirm(msg)) return;
     setWiping(true);
     try {
       await db.close();
@@ -74,6 +101,42 @@ export function ResyncPage() {
           {pulling ? 'Sincronizando…' : 'Sincronizar agora'}
         </Button>
       </div>
+
+      {deadItems.length > 0 && (
+        <div className="space-y-3 rounded-md border border-[var(--color-red)]/50 bg-[var(--color-bg-card)] p-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium text-[var(--color-red)]">
+              Falhas de sincronização ({deadItems.length})
+            </h3>
+            <Button size="sm" onClick={handleRetryDead} disabled={retrying}>
+              {retrying ? 'Reagendando…' : 'Tentar novamente'}
+            </Button>
+          </div>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Estes registros falharam repetidamente e pararam de ser reenviados automaticamente.
+          </p>
+          <ul className="space-y-1 text-sm">
+            {deadItems.map((item) => (
+              <li
+                key={item.id}
+                className="rounded border border-[var(--color-border)] p-2 font-mono text-xs"
+              >
+                <div>
+                  {item.table} · {item.operation}
+                </div>
+                {item.last_error && (
+                  <div className="text-[var(--color-red)]">{item.last_error}</div>
+                )}
+                {item.attempted_at && (
+                  <div className="text-[var(--color-text-muted)]">
+                    {new Date(item.attempted_at).toLocaleString('pt-BR')}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="space-y-3 rounded-md border border-[var(--color-red)]/50 bg-[var(--color-bg-card)] p-4">
         <h3 className="font-medium text-[var(--color-red)]">Apagar cache local</h3>

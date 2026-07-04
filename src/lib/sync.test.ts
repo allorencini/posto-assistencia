@@ -1,10 +1,34 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from './db';
+
+const upsertMock = vi.fn();
+const deleteEqMock = vi.fn();
+const selectRangeMock = vi.fn().mockResolvedValue({ data: [], error: null });
+vi.mock('./supabase', () => ({
+  supabase: {
+    from: () => ({
+      upsert: upsertMock,
+      delete: () => ({ eq: deleteEqMock }),
+      select: () => ({ range: selectRangeMock }),
+    }),
+  },
+}));
+vi.mock('@/features/auth/useAuth', () => ({
+  useAuth: { getState: () => ({ user: mockUser }) },
+}));
+let mockUser: { id: string } | null = { id: 'u1' };
 
 describe('sync engine', () => {
   beforeEach(async () => {
     await db.delete();
     await db.open();
+    mockUser = { id: 'u1' };
+    upsertMock.mockReset();
+    upsertMock.mockResolvedValue({ error: null });
+    deleteEqMock.mockReset();
+    deleteEqMock.mockResolvedValue({ error: null });
+    selectRangeMock.mockReset();
+    selectRangeMock.mockResolvedValue({ data: [], error: null });
   });
 
   it('enqueueSync adds item to sync_queue', async () => {
@@ -19,5 +43,88 @@ describe('sync engine', () => {
     expect(queue).toHaveLength(1);
     expect(queue[0].table).toBe('pessoas');
     expect(queue[0].attempts).toBe(0);
+  });
+
+  it('runSync sem sessão: não faz push nem pull', async () => {
+    mockUser = null;
+    await db.sync_queue.add({
+      table: 'pessoas',
+      operation: 'upsert',
+      data: { id: crypto.randomUUID() },
+      user_id: 'u1',
+      attempts: 0,
+      timestamp: Date.now(),
+    });
+    const { runSync } = await import('./sync');
+    await runSync();
+    expect(upsertMock).not.toHaveBeenCalled();
+    expect(selectRangeMock).not.toHaveBeenCalled();
+    expect(await db.sync_queue.count()).toBe(1);
+    mockUser = { id: 'u1' };
+  });
+
+  it('item com attempts >= MAX não é deletado nem re-tentado (dead-letter)', async () => {
+    await db.sync_queue.add({
+      table: 'pessoas',
+      operation: 'upsert',
+      data: { id: crypto.randomUUID() },
+      user_id: 'u1',
+      attempts: 5,
+      timestamp: Date.now(),
+    });
+    const { runSync } = await import('./sync');
+    await runSync();
+    expect(upsertMock).not.toHaveBeenCalled();
+    expect(await db.sync_queue.count()).toBe(1);
+  });
+
+  it('erro permanente (PostgrestError com code) incrementa attempts', async () => {
+    upsertMock.mockResolvedValue({ error: { code: '42501', message: 'rls' } });
+    await db.sync_queue.add({
+      table: 'pessoas',
+      operation: 'upsert',
+      data: { id: crypto.randomUUID() },
+      user_id: 'u1',
+      attempts: 0,
+      timestamp: Date.now(),
+    });
+    const { runSync } = await import('./sync');
+    await runSync();
+    const [item] = await db.sync_queue.toArray();
+    expect(item.attempts).toBe(1);
+  });
+
+  it('falha de rede (exceção sem code) NÃO incrementa attempts', async () => {
+    upsertMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await db.sync_queue.add({
+      table: 'pessoas',
+      operation: 'upsert',
+      data: { id: crypto.randomUUID() },
+      user_id: 'u1',
+      attempts: 0,
+      timestamp: Date.now(),
+    });
+    const { runSync } = await import('./sync');
+    await runSync();
+    const [item] = await db.sync_queue.toArray();
+    expect(item.attempts).toBe(0);
+    expect(item.last_error).toContain('fetch');
+  });
+
+  it('retryDeadItems zera attempts dos mortos', async () => {
+    await db.sync_queue.add({
+      table: 'pessoas',
+      operation: 'upsert',
+      data: { id: crypto.randomUUID() },
+      user_id: 'u1',
+      attempts: 7,
+      timestamp: Date.now(),
+      last_error: 'x',
+    });
+    const { retryDeadItems } = await import('./sync');
+    const n = await retryDeadItems();
+    expect(n).toBe(1);
+    const [item] = await db.sync_queue.toArray();
+    expect(item.attempts).toBe(0);
   });
 });

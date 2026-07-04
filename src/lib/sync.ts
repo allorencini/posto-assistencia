@@ -1,3 +1,4 @@
+import { useAuth } from '@/features/auth/useAuth';
 import type { SyncQueueItem } from '@/types/domain';
 import type { Table } from 'dexie';
 import { db } from './db';
@@ -34,22 +35,41 @@ export function scheduleSync(): void {
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const MAX_ATTEMPTS = 5;
+export const MAX_ATTEMPTS = 5;
+
+export function isDeadItem(item: SyncQueueItem): boolean {
+  return item.attempts >= MAX_ATTEMPTS;
+}
+
+export async function retryDeadItems(): Promise<number> {
+  let n = 0;
+  await db.sync_queue
+    .toCollection()
+    .filter((q) => isDeadItem(q))
+    .modify((q) => {
+      q.attempts = 0;
+      q.last_error = undefined;
+      n += 1;
+    });
+  if (n > 0) scheduleSync();
+  return n;
+}
 
 export async function runSync(): Promise<void> {
+  if (!useAuth.getState().user) return;
   if (inProgress) return;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
   inProgress = true;
 
   try {
-    // Limpa itens órfãos: IDs não-UUID (pre-fix bug) ou já tentados demais
+    // Limpa itens órfãos: IDs não-UUID (lixo do bug pré-fix, irrecuperável por construção).
+    // Itens mortos (attempts >= MAX_ATTEMPTS) NÃO são deletados aqui — vão pra dead-letter
+    // (pulados no loop abaixo) até um retry manual via retryDeadItems().
     const allQueue = await db.sync_queue.toArray();
     const orphanIds = allQueue
       .filter((q) => {
-        if (q.attempts >= MAX_ATTEMPTS) return true;
         const id = q.data?.id;
-        if (id && typeof id === 'string' && !UUID_REGEX.test(id)) return true;
-        return false;
+        return !!(id && typeof id === 'string' && !UUID_REGEX.test(id));
       })
       .map((q) => q.id)
       .filter((id): id is number => typeof id === 'number');
@@ -59,6 +79,7 @@ export async function runSync(): Promise<void> {
 
     const queue = await db.sync_queue.orderBy('timestamp').toArray();
     for (const item of queue) {
+      if (isDeadItem(item)) continue;
       try {
         if (item.operation === 'delete') {
           const { error } = await supabase.from(item.table).delete().eq('id', item.data.id);
@@ -80,8 +101,13 @@ export async function runSync(): Promise<void> {
         await db.sync_queue.delete(item.id!);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        // Só erro permanente (PostgrestError com `.code` string — RLS, FK, unique) mata o
+        // item (incrementa attempts). Falha transiente (rede: fetch rejeitado sem `.code`)
+        // não pode contar pra dead-letter — só atualiza o diagnóstico.
+        const code = (err as { code?: unknown })?.code;
+        const permanent = typeof code === 'string';
         await db.sync_queue.update(item.id!, {
-          attempts: item.attempts + 1,
+          ...(permanent ? { attempts: item.attempts + 1 } : {}),
           last_error: message,
           attempted_at: Date.now(),
         });
@@ -176,7 +202,9 @@ async function pullChanges(): Promise<void> {
   }
 }
 
-if (typeof window !== 'undefined') {
+const g = globalThis as { __presencaSyncTimers?: boolean };
+if (typeof window !== 'undefined' && !g.__presencaSyncTimers) {
+  g.__presencaSyncTimers = true;
   window.addEventListener('online', scheduleSync);
   setInterval(scheduleSync, 30_000);
 }

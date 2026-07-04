@@ -58,31 +58,39 @@ export function ChamadaPage() {
   const [chamadaId, setChamadaId] = useState<string | null>(existing?.id ?? null);
   if (existing && chamadaId !== existing.id) setChamadaId(existing.id);
   const { data: presencas = [] } = usePresencasByChamada(chamadaId);
-  const creatingRef = useRef<{ date: string; promise: Promise<string> } | null>(null);
+  // Criações em voo trackeadas POR DATA (nunca substituídas): getOrCreate duas
+  // vezes pra mesma data cria duas chamadas locais, então toda data com criação
+  // pendente precisa manter sua promise reusável até resolver — inclusive se o
+  // usuário navegar pra outra data e disparar OUTRA criação no meio do caminho
+  // (um slot único seria substituído nesse cenário e reabriria a corrida).
+  const creatingByDateRef = useRef<Map<string, Promise<string>>>(new Map());
 
   const handleDateChange = (d: string) => {
     if (!d || d > today) return;
     selectedDateRef.current = d;
     setSelectedDate(d);
     setChamadaId(chamadas.find((c) => c.data === d)?.id ?? null);
-    // Não zera creatingRef aqui: uma criação em voo para outra data continua
-    // rastreada (amarrada à sua própria data) mesmo trocando de data no meio do
-    // caminho. Se o usuário voltar pra essa data antes da promise resolver,
-    // ensureChamadaId reusa a MESMA promise em vez de disparar getOrCreate de novo
-    // (isso é o que evita a corrida: getOrCreate duas vezes pra mesma data cria
-    // duas chamadas locais). Referências para datas diferentes da atual nunca são
-    // reaproveitadas (ver checagem de data em ensureChamadaId), então não há
-    // vazamento funcional em manter a última aqui.
+    // Trocar de data não mexe em creatingByDateRef: cada criação em voo fica
+    // trackeada sob a própria data e é reusada por ensureChamadaId se o usuário
+    // voltar; entradas de outras datas nunca são lidas pra data atual.
   };
 
   const ensureChamadaId = async (): Promise<string> => {
     if (chamadaId) return chamadaId;
     const dateAtCall = selectedDate;
-    if (!creatingRef.current || creatingRef.current.date !== dateAtCall) {
-      const promise = getOrCreate.mutateAsync(dateAtCall).then((c) => c.id);
-      creatingRef.current = { date: dateAtCall, promise };
+    let creating = creatingByDateRef.current.get(dateAtCall);
+    if (!creating) {
+      creating = getOrCreate.mutateAsync(dateAtCall).then((c) => c.id);
+      creatingByDateRef.current.set(dateAtCall, creating);
+      // Rejeição: tira da Map pra permitir retry no próximo toggle — senão a
+      // promise rejeitada ficaria cacheada e refalharia pra sempre nessa data.
+      creating.catch(() => {
+        if (creatingByDateRef.current.get(dateAtCall) === creating) {
+          creatingByDateRef.current.delete(dateAtCall);
+        }
+      });
     }
-    const id = await creatingRef.current.promise;
+    const id = await creating;
     // Guarda contra troca de data com criação em voo: só fixa o id no estado
     // se a data selecionada ainda é a mesma da chamada criada.
     if (selectedDateRef.current === dateAtCall) setChamadaId(id);

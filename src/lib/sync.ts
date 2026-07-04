@@ -90,8 +90,9 @@ export async function runSync(): Promise<void> {
       // pode derrubar `useAuth` no meio deste loop. Sem isso o runSync órfão continua
       // empurrando com anon key, PostgREST rejeita com code string (RLS) e o item é
       // classificado como erro permanente — attempts sobe e, após MAX_ATTEMPTS, vira
-      // dead-letter e bloqueia o db.delete() do logout pra sempre.
-      if (!useAuth.getState().user) break;
+      // dead-letter e bloqueia o db.delete() do logout pra sempre. Compara identidade
+      // (não só truthiness): troca de usuário A→B com o loop vivo também interrompe.
+      if (useAuth.getState().user?.id !== uid) break;
       if (isDeadItem(item)) continue;
       if (item.user_id !== uid) continue;
       try {

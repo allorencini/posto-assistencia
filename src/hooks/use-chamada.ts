@@ -1,8 +1,29 @@
 import { useAuth } from '@/features/auth/useAuth';
 import { db } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
 import { enqueueSync } from '@/lib/sync';
 import type { Chamada } from '@/types/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+// Lookup server-first: evita a corrida de ID do upsert onConflict('data') —
+// se outro device já criou chamada pra essa data, reusa o id canônico do
+// servidor em vez de gerar UUID novo (que tentaria reescrever o PK no push
+// e violaria FK de presencas existentes). Falha rápido e silencioso:
+// offline/timeout → cria local (comportamento anterior).
+async function fetchServerChamada(data: string): Promise<Chamada | null> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return null;
+  try {
+    const { data: rows, error } = await supabase
+      .from('chamadas')
+      .select('id, data, criado_em')
+      .eq('data', data)
+      .limit(1);
+    if (error || !rows || rows.length === 0) return null;
+    return rows[0] as Chamada;
+  } catch {
+    return null;
+  }
+}
 
 export function useChamadas() {
   return useQuery({
@@ -45,6 +66,12 @@ export function useGetOrCreateChamada() {
           });
         }
         return keep;
+      }
+
+      const server = await fetchServerChamada(data);
+      if (server) {
+        await db.chamadas.put(server);
+        return server;
       }
 
       const now = new Date().toISOString();

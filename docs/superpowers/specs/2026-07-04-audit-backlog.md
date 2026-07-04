@@ -32,6 +32,16 @@ Wave 1 (fixada em `docs/superpowers/plans/2026-07-04-audit-wave1-fixes.md`): pur
 18. **[PLAUSIBLE, média] `db-backup.yml` sem pipefail** — pg_dump falho + gzip ok = backup vazio "sucesso". Fix: `set -o pipefail` no step (uma linha).
 19. **[CONFIRMED, alto trabalho] `bootstrapAuth` exige rede no boot** — parcialmente mitigado na Wave 1 (R4). Follow-up: revisar UX de "sessão offline" de longo prazo (expiração de token supabase vs uso offline prolongado).
 
+## 🟢 Fast-follows do review final da branch (2026-07-04)
+
+20. **JWT expirado classificado como permanente** (`sync.ts`, classificação de erro) — códigos de auth (`PGRST301` etc.) têm `.code` string → attempts++ → dead-letter falso durante refresh de token pós-offline-longo. Dado preservado e retryável, mas gera pill vermelho falso. Fix: tratar `PGRST30x` como transiente.
+21. **Pill de falha aponta pra rota admin-only** (`sync-status.tsx` "abra Admin > Sincronização" vs rota `RequireRole admin`) — operador não consegue agir sobre a própria dead-letter. Mensagem por papel ou expor retry ao operador.
+22. **Dead-letter inconvergível na corrida residual de chamada retroativa de operador** — upsert de chamada caindo no branch UPDATE (admin-only, migration 010) dá 42501; retry manual repete o erro. Recuperação: admin re-cria/ajusta via Histórico. Documentar em ops-notes; fix definitivo = re-parenting (item 14).
+23. **LoginPage confla erro de rede com "sem permissão"** (`login.tsx` signOut em appErr genérico) e não escreve o papel-cache — aplicar a mesma heurística rede-vs-definitivo do bootstrap (R4).
+24. **Pill "Sincronizando (N)" eterno em device compartilhado** — itens de outro dono contam no queueCount mas só o dono empurra. Cosmético (consequência deliberada do push-por-dono); considerar contar só itens do usuário corrente + linha separada "N de outro usuário".
+25. **`PessoaForm.onSubmit`: `if (!term) throw` DEPOIS do savePessoa** — quase inalcançável (checkbox disabled + zod), mas se alcançado salva pessoa sem trilha de consent. Mover checagem pra antes do save.
+26. **Listener `online` do `consent-term-cache.ts` sem guard de HMR** (sync.ts tem) — só afeta dev, idempotente. Alinhar com o padrão do sync.
+
 ## Notas de verificação
 
 - Itens 1-4 CONFIRMED por verificador adversarial. Demais PLAUSIBLE (verificador caiu por rate-limit) — re-verificar a alegação lendo o código antes de implementar.

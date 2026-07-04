@@ -41,6 +41,7 @@ Wave 1 (fixada em `docs/superpowers/plans/2026-07-04-audit-wave1-fixes.md`): pur
 24. **Pill "Sincronizando (N)" eterno em device compartilhado** — itens de outro dono contam no queueCount mas só o dono empurra. Cosmético (consequência deliberada do push-por-dono); considerar contar só itens do usuário corrente + linha separada "N de outro usuário".
 25. **`PessoaForm.onSubmit`: `if (!term) throw` DEPOIS do savePessoa** — quase inalcançável (checkbox disabled + zod), mas se alcançado salva pessoa sem trilha de consent. Mover checagem pra antes do save.
 26. **Listener `online` do `consent-term-cache.ts` sem guard de HMR** (sync.ts tem) — só afeta dev, idempotente. Alinhar com o padrão do sync.
+27. **Ops-note — cinto anti-wipe do pull:** reset TOTAL de uma tabela no servidor (0 rows) não converge mais automaticamente nos devices (delete-pass é pulado por segurança). Recuperação: Admin > Sincronização > "Apagar cache e recarregar" em cada device. Cenário de reset de base, não de operação normal (deleções do app são soft).
 
 ## Notas de verificação
 

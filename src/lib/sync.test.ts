@@ -173,6 +173,43 @@ describe('sync engine', () => {
     expect(item2!.attempts).toBe(0);
   });
 
+  it('sessão cai durante o pull (idle-logout no meio do ciclo): dado local não-pendente sobrevive', async () => {
+    await db.pessoas.put({
+      id: 'p-local',
+      nome: 'Local',
+      grupo: 'adulto',
+      familia_id: null,
+      telefone: null,
+      rua: null,
+      numero: null,
+      complemento: null,
+      bairro: null,
+      cep: null,
+      visitada: false,
+      apta_cesta: null,
+      visita_obs: null,
+      excluir_ranking: false,
+      ativo: true,
+      anonimizado_em: null,
+      anonimizado_por: null,
+      criado_em: '2026-01-01T00:00:00Z',
+      atualizado_em: '2026-01-01T00:00:00Z',
+    });
+    // Fila vazia (push não roda). O select().range() do pull derruba a sessão
+    // ANTES de resolver — simula um logout concorrente (idle timeout) que
+    // termina bem no meio do ciclo de pull, depois do entry-check de
+    // pullChanges já ter passado.
+    selectRangeMock.mockImplementation(() => {
+      mockUser = null;
+      return Promise.resolve({ data: [], error: null });
+    });
+    const { runSync } = await import('./sync');
+    await runSync();
+    // Sem o recheck antes do delete-pass, o servidor "vazio" (RLS sob sessão
+    // caída) apagaria a linha local não-pendente.
+    expect(await db.pessoas.get('p-local')).toBeDefined();
+  });
+
   it('push só do dono da fila: item de outro usuário (device compartilhado) fica preservado', async () => {
     const idOutro = crypto.randomUUID();
     const idMeu = crypto.randomUUID();

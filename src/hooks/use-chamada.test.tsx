@@ -10,7 +10,7 @@ vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: () => ({
       select: () => ({
-        eq: () => ({ limit: limitMock }),
+        eq: () => ({ abortSignal: () => ({ limit: limitMock }) }),
       }),
     }),
   },
@@ -59,6 +59,19 @@ describe('useGetOrCreateChamada — server-first', () => {
 
   it('lookup falha (rede ruim): cria local + enfileira (comportamento atual)', async () => {
     limitMock.mockRejectedValue(new Error('timeout'));
+    const { result } = renderHook(() => useGetOrCreateChamada(), { wrapper });
+    let out: { id: string } | undefined;
+    await act(async () => {
+      out = await result.current.mutateAsync('2026-06-20');
+    });
+    expect(out?.id).toBeTruthy();
+    const queue = await db.sync_queue.toArray();
+    expect(queue).toHaveLength(1);
+    expect(queue[0].table).toBe('chamadas');
+  });
+
+  it('lookup aborta por timeout (wifi degradado): cria local + enfileira', async () => {
+    limitMock.mockRejectedValue(new DOMException('signal timed out', 'TimeoutError'));
     const { result } = renderHook(() => useGetOrCreateChamada(), { wrapper });
     let out: { id: string } | undefined;
     await act(async () => {

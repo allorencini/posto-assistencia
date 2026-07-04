@@ -1,3 +1,4 @@
+import { refreshConsentTermCache } from '@/lib/consent-term-cache';
 import { startRealtime, stopRealtime } from '@/lib/realtime';
 import { supabase } from '@/lib/supabase';
 import { runSync } from '@/lib/sync';
@@ -55,6 +56,12 @@ function applyOk(user: User, papel: Papel): void {
   useAuth.getState().setSession(user, papel);
   writePapelCache(user.id, papel);
   startRealtime();
+  // Garante o termo de consentimento no Dexie neste device: cobre tanto o boot
+  // feliz quanto o SIGNED_IN disparado por um login direto na LoginPage (que
+  // nunca passa por bootstrapAuth). Sem isso, um device cujo Dexie foi
+  // zerado por um idle-logout com fila vazia fica sem termo cacheado e o
+  // cadastro offline bloqueia até a próxima janela 'online'.
+  void refreshConsentTermCache();
 }
 
 async function applyInvalid(): Promise<void> {

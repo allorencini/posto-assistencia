@@ -20,6 +20,10 @@ vi.mock('@/lib/supabase', () => ({
 }));
 vi.mock('@/lib/realtime', () => ({ startRealtime: vi.fn(), stopRealtime: vi.fn() }));
 vi.mock('@/lib/sync', () => ({ runSync: vi.fn().mockResolvedValue(undefined) }));
+const refreshConsentTermCacheMock = vi.fn().mockResolvedValue(undefined);
+vi.mock('@/lib/consent-term-cache', () => ({
+  refreshConsentTermCache: refreshConsentTermCacheMock,
+}));
 
 // `listenerRegistered` em bootstrap.ts é estado de módulo (singleton por ciclo
 // de vida do módulo). `vi.resetModules()` no beforeEach garante um módulo novo
@@ -119,6 +123,14 @@ describe('bootstrapAuth', () => {
     });
   });
 
+  it('boot feliz: cacheia o termo de consentimento pra funcionar offline neste device', async () => {
+    getSessionMock.mockResolvedValue({ data: { session: { user: { id: 'u1' } } } });
+    singleMock.mockResolvedValue({ data: { papel: 'admin', ativo: true }, error: null });
+    const { bootstrapAuth } = await loadBootstrap();
+    await bootstrapAuth();
+    expect(refreshConsentTermCacheMock).toHaveBeenCalled();
+  });
+
   describe('callback registrado via onAuthStateChange', () => {
     // Registra o listener via um boot sem sessão (early-return, não toca em
     // resolvePapel) e devolve a callback real passada pro onAuthStateChange
@@ -167,6 +179,15 @@ describe('bootstrapAuth', () => {
 
       expect(signOutMock).toHaveBeenCalled();
       expect(useAuth.getState().user).toBeNull();
+    });
+
+    it('SIGNED_IN (login direto pela LoginPage) com resposta ok: cacheia o termo de consentimento', async () => {
+      const { callback } = await registerAndCapture();
+      singleMock.mockResolvedValue({ data: { papel: 'operador', ativo: true }, error: null });
+
+      await callback('SIGNED_IN', { user: { id: 'u1' } });
+
+      expect(refreshConsentTermCacheMock).toHaveBeenCalled();
     });
   });
 });

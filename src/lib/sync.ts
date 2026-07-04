@@ -56,7 +56,8 @@ export async function retryDeadItems(): Promise<number> {
 }
 
 export async function runSync(): Promise<void> {
-  if (!useAuth.getState().user) return;
+  const uid = useAuth.getState().user?.id;
+  if (!uid) return;
   if (inProgress) return;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
   inProgress = true;
@@ -83,7 +84,6 @@ export async function runSync(): Promise<void> {
     // silenciosamente edições de admin. Cada item só é empurrado pelo dono original;
     // itens de outros usuários ficam preservados na fila (e continuam protegendo as
     // linhas locais correspondentes via pendingByTable no pull) até o dono logar de novo.
-    const uid = useAuth.getState().user?.id;
     const queue = await db.sync_queue.orderBy('timestamp').toArray();
     for (const item of queue) {
       // Recheca a sessão a cada item: um logout concorrente (idle timeout, aba duplicada)
@@ -128,13 +128,20 @@ export async function runSync(): Promise<void> {
         });
       }
     }
-    await pullChanges();
+    await pullChanges(uid);
   } finally {
     inProgress = false;
   }
 }
 
-async function pullChanges(): Promise<void> {
+// `uid` é o dono da sessão capturado no início do runSync. Um logout concorrente
+// (idle timeout, aba duplicada, ou o teto de 10s do próprio logout) pode derrubar
+// `useAuth` entre o fim do push e o começo do pull, ou no meio do pull em si — sem
+// recheck, pullChanges roda com anon key, RLS devolve 200 [] e o delete-pass abaixo
+// apaga a base local inteira (linhas não-pendentes) achando que o servidor está vazio.
+async function pullChanges(uid: string): Promise<void> {
+  if (useAuth.getState().user?.id !== uid) return;
+
   const tables: SyncQueueItem['table'][] = [
     'familias',
     'pessoas',
@@ -192,7 +199,15 @@ async function pullChanges(): Promise<void> {
           await table.put(row);
         }
       }
+      // Recheca a sessão imediatamente antes do delete-pass: um logout concorrente
+      // pode ter derrubado `useAuth` durante o put-pass acima. Se mudou, pula só o
+      // delete-pass desta tabela — os puts já aplicados são inofensivos (dados reais
+      // do servidor, não lixo de sessão anônima).
+      if (useAuth.getState().user?.id !== uid) return;
       const all = await table.toArray();
+      // Cinto extra: servidor devolveu 0 linhas mas há dado local — mais provável
+      // sinal de RLS/rede degradada que de tabela genuinamente vazia. Não apaga.
+      if (data.length === 0 && all.length > 0) return;
       for (const local of all) {
         if (!serverIds.has(local.id) && !pendingIds.has(local.id)) {
           await table.delete(local.id);
@@ -200,6 +215,8 @@ async function pullChanges(): Promise<void> {
       }
     });
   }
+
+  if (useAuth.getState().user?.id !== uid) return;
 
   // Cleanup presencas com chamada_id órfão (chamada local foi deletada acima)
   const validChamadaIds = new Set((await db.chamadas.toArray()).map((c) => c.id));

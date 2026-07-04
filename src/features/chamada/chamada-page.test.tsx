@@ -19,7 +19,7 @@ vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: () => ({
       select: () => ({
-        eq: () => ({ limit: limitMock }),
+        eq: () => ({ abortSignal: () => ({ limit: limitMock }) }),
       }),
     }),
   },

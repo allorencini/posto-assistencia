@@ -17,6 +17,7 @@ async function fetchServerChamada(data: string): Promise<Chamada | null> {
       .from('chamadas')
       .select('id, data, criado_em')
       .eq('data', data)
+      .abortSignal(AbortSignal.timeout(4000))
       .limit(1);
     if (error || !rows || rows.length === 0) return null;
     return rows[0] as Chamada;

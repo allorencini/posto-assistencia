@@ -25,14 +25,26 @@ describe('useActiveConsentTerm', () => {
   });
 
   it('retorna termo do cache Dexie sem depender de rede', async () => {
-    await db.consent_terms.put({ id: 't1', versao: '1', texto: 'cacheado', ativo: true, criado_em: '2026-01-01T00:00:00Z' });
+    await db.consent_terms.put({
+      id: 't1',
+      versao: '1',
+      texto: 'cacheado',
+      ativo: true,
+      criado_em: '2026-01-01T00:00:00Z',
+    });
     const { result } = renderHook(() => useActiveConsentTerm(), { wrapper });
     await waitFor(() => expect(result.current.data?.id).toBe('t1'));
   });
 
   it('cache vazio: tenta refresh uma vez e relê', async () => {
     refreshMock.mockImplementation(async () => {
-      await db.consent_terms.put({ id: 't9', versao: '1', texto: 'baixado', ativo: true, criado_em: '2026-01-01T00:00:00Z' });
+      await db.consent_terms.put({
+        id: 't9',
+        versao: '1',
+        texto: 'baixado',
+        ativo: true,
+        criado_em: '2026-01-01T00:00:00Z',
+      });
     });
     const { result } = renderHook(() => useActiveConsentTerm(), { wrapper });
     await waitFor(() => expect(result.current.data?.id).toBe('t9'));

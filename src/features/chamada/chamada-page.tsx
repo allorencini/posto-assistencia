@@ -149,8 +149,7 @@ export function ChamadaPage() {
     });
     // Zero presenças nas últimas 4 chamadas (só F ou '-') → joga pro fim.
     // Qualquer P recente mantém a pessoa em ordem alfabética normal.
-    const noPresence = (hist: HistMark[]) =>
-      hist.length === 4 && hist.every((h) => h !== 'P');
+    const noPresence = (hist: HistMark[]) => hist.length === 4 && hist.every((h) => h !== 'P');
     const sortKey = (p: (typeof pessoas)[number]) =>
       noPresence(historicoMap.get(p.id) ?? []) ? 1 : 0;
     GRUPOS.forEach((g) =>

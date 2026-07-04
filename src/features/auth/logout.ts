@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { stopRealtime } from '@/lib/realtime';
-import { runSync } from '@/lib/sync';
 import { supabase } from '@/lib/supabase';
+import { runSync } from '@/lib/sync';
 import { useAuth } from './useAuth';
 
 // Best-effort: um runSync travado (rede degradada, não offline) não pode segurar o

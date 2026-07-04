@@ -1,7 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/lib/db';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/lib/supabase', () => ({ supabase: { auth: { signOut: vi.fn().mockResolvedValue({}) } } }));
+vi.mock('@/lib/supabase', () => ({
+  supabase: { auth: { signOut: vi.fn().mockResolvedValue({}) } },
+}));
 vi.mock('@/lib/realtime', () => ({ stopRealtime: vi.fn() }));
 vi.mock('@/lib/sync', () => ({ runSync: vi.fn().mockResolvedValue(undefined) }));
 
@@ -14,7 +16,14 @@ describe('logout', () => {
   });
 
   it('com pendências na sync_queue: NÃO apaga o banco local', async () => {
-    await db.sync_queue.add({ table: 'presencas', operation: 'upsert', data: { id: crypto.randomUUID() }, user_id: 'u1', attempts: 0, timestamp: Date.now() });
+    await db.sync_queue.add({
+      table: 'presencas',
+      operation: 'upsert',
+      data: { id: crypto.randomUUID() },
+      user_id: 'u1',
+      attempts: 0,
+      timestamp: Date.now(),
+    });
     const deleteSpy = vi.spyOn(db, 'delete');
     const { logout } = await import('./logout');
     await logout();
@@ -33,7 +42,10 @@ describe('logout', () => {
     const deleted: string[] = [];
     vi.stubGlobal('caches', {
       keys: async () => ['workbox-precache-v2-https://x', 'runtime-admin'],
-      delete: async (k: string) => { deleted.push(k); return true; },
+      delete: async (k: string) => {
+        deleted.push(k);
+        return true;
+      },
     });
     const { logout } = await import('./logout');
     await logout();

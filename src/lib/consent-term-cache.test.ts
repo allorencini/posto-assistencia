@@ -25,7 +25,13 @@ describe('consent-term-cache', () => {
 
   it('popula Dexie com o termo ativo do servidor', async () => {
     maybeSingle.mockResolvedValue({
-      data: { id: 't1', versao: '2', texto: 'novo termo', ativo: true, criado_em: '2026-07-01T00:00:00Z' },
+      data: {
+        id: 't1',
+        versao: '2',
+        texto: 'novo termo',
+        ativo: true,
+        criado_em: '2026-07-01T00:00:00Z',
+      },
       error: null,
     });
     const { refreshConsentTermCache } = await import('./consent-term-cache');
@@ -36,9 +42,21 @@ describe('consent-term-cache', () => {
   });
 
   it('substitui termo antigo cacheado pelo novo', async () => {
-    await db.consent_terms.put({ id: 'old', versao: '1', texto: 'antigo', ativo: true, criado_em: '2026-01-01T00:00:00Z' });
+    await db.consent_terms.put({
+      id: 'old',
+      versao: '1',
+      texto: 'antigo',
+      ativo: true,
+      criado_em: '2026-01-01T00:00:00Z',
+    });
     maybeSingle.mockResolvedValue({
-      data: { id: 't2', versao: '3', texto: 'atual', ativo: true, criado_em: '2026-07-02T00:00:00Z' },
+      data: {
+        id: 't2',
+        versao: '3',
+        texto: 'atual',
+        ativo: true,
+        criado_em: '2026-07-02T00:00:00Z',
+      },
       error: null,
     });
     const { refreshConsentTermCache } = await import('./consent-term-cache');
@@ -49,7 +67,13 @@ describe('consent-term-cache', () => {
   });
 
   it('erro de rede não lança e não apaga cache existente', async () => {
-    await db.consent_terms.put({ id: 'keep', versao: '1', texto: 'mantém', ativo: true, criado_em: '2026-01-01T00:00:00Z' });
+    await db.consent_terms.put({
+      id: 'keep',
+      versao: '1',
+      texto: 'mantém',
+      ativo: true,
+      criado_em: '2026-01-01T00:00:00Z',
+    });
     maybeSingle.mockRejectedValue(new Error('network down'));
     const { refreshConsentTermCache } = await import('./consent-term-cache');
     await expect(refreshConsentTermCache()).resolves.toBeUndefined();

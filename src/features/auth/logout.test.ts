@@ -40,4 +40,25 @@ describe('logout', () => {
     expect(deleted).toEqual(['runtime-admin']);
     vi.unstubAllGlobals();
   });
+
+  it('falha ao contar a fila (db.sync_queue.count rejeita): NÃO apaga o banco local', async () => {
+    const countSpy = vi.spyOn(db.sync_queue, 'count').mockRejectedValue(new Error('boom'));
+    const deleteSpy = vi.spyOn(db, 'delete');
+    const { logout } = await import('./logout');
+    await logout();
+    expect(deleteSpy).not.toHaveBeenCalled();
+    countSpy.mockRestore();
+  });
+
+  it('ordem: runSync é chamado antes de supabase.auth.signOut', async () => {
+    const { runSync } = await import('@/lib/sync');
+    const { supabase } = await import('@/lib/supabase');
+    const { logout } = await import('./logout');
+    await logout();
+    const runSyncCall = vi.mocked(runSync).mock.invocationCallOrder[0];
+    const signOutCall = vi.mocked(supabase.auth.signOut).mock.invocationCallOrder[0];
+    expect(runSyncCall).toBeDefined();
+    expect(signOutCall).toBeDefined();
+    expect(runSyncCall).toBeLessThan(signOutCall);
+  });
 });

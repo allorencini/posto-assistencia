@@ -127,4 +127,36 @@ describe('sync engine', () => {
     const [item] = await db.sync_queue.toArray();
     expect(item.attempts).toBe(0);
   });
+
+  it('push só do dono da fila: item de outro usuário (device compartilhado) fica preservado', async () => {
+    const idOutro = crypto.randomUUID();
+    const idMeu = crypto.randomUUID();
+    await db.sync_queue.bulkAdd([
+      {
+        table: 'pessoas',
+        operation: 'upsert',
+        data: { id: idOutro },
+        user_id: 'outro',
+        attempts: 0,
+        timestamp: Date.now(),
+      },
+      {
+        table: 'pessoas',
+        operation: 'upsert',
+        data: { id: idMeu },
+        user_id: 'u1',
+        attempts: 0,
+        timestamp: Date.now() + 1,
+      },
+    ]);
+    const { runSync } = await import('./sync');
+    await runSync();
+    // Só o item do usuário logado (u1) foi empurrado.
+    expect(upsertMock).toHaveBeenCalledTimes(1);
+    expect(upsertMock).toHaveBeenCalledWith({ id: idMeu }, { onConflict: 'id' });
+    const remaining = await db.sync_queue.toArray();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].user_id).toBe('outro');
+    expect(remaining[0].data).toEqual({ id: idOutro });
+  });
 });

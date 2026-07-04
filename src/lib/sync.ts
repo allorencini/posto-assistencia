@@ -77,9 +77,17 @@ export async function runSync(): Promise<void> {
       await db.sync_queue.bulkDelete(orphanIds);
     }
 
+    // Device compartilhado: um logout que preserva o Dexie (pendências não sincronizadas)
+    // seguido de login de OUTRO usuário não pode empurrar a fila de A sob a sessão de B —
+    // o item seria atribuído a B e o trigger enforce_operador_fields poderia mutilar
+    // silenciosamente edições de admin. Cada item só é empurrado pelo dono original;
+    // itens de outros usuários ficam preservados na fila (e continuam protegendo as
+    // linhas locais correspondentes via pendingByTable no pull) até o dono logar de novo.
+    const uid = useAuth.getState().user?.id;
     const queue = await db.sync_queue.orderBy('timestamp').toArray();
     for (const item of queue) {
       if (isDeadItem(item)) continue;
+      if (item.user_id !== uid) continue;
       try {
         if (item.operation === 'delete') {
           const { error } = await supabase.from(item.table).delete().eq('id', item.data.id);

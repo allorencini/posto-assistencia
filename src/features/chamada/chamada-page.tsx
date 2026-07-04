@@ -2,6 +2,8 @@ import { EmptyState } from '@/components/empty-state';
 import { FilterPills } from '@/components/filter-pills';
 import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useChamadas, useGetOrCreateChamada } from '@/hooks/use-chamada';
 import { usePessoas } from '@/hooks/use-pessoas';
 import { useAllPresencas, usePresencasByChamada, useSavePresenca } from '@/hooks/use-presencas';
@@ -25,28 +27,57 @@ function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function formatDateBanner(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  return d.toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
 export function ChamadaPage() {
-  const today = todayISO();
   const { data: pessoas = [] } = usePessoas();
   const { data: chamadas = [] } = useChamadas();
   const { data: allPresencas = [] } = useAllPresencas();
   const getOrCreate = useGetOrCreateChamada();
   const savePresenca = useSavePresenca();
-  // Pega chamada existente pra hoje sem criar (criação lazy no primeiro toggle pra não
-  // poluir histórico com chamadas vazias quando user só abre a página).
-  const existing = useMemo(() => chamadas.find((c) => c.data === today) ?? null, [chamadas, today]);
+
+  const today = todayISO();
+  const [selectedDate, setSelectedDate] = useState(today);
+  const isRetro = selectedDate !== today;
+  const selectedDateRef = useRef(selectedDate);
+
+  // Pega chamada existente pra data selecionada sem criar (criação lazy no primeiro toggle
+  // pra não poluir histórico com chamadas vazias quando user só abre a página).
+  const existing = useMemo(
+    () => chamadas.find((c) => c.data === selectedDate) ?? null,
+    [chamadas, selectedDate],
+  );
   const [chamadaId, setChamadaId] = useState<string | null>(existing?.id ?? null);
   if (existing && chamadaId !== existing.id) setChamadaId(existing.id);
   const { data: presencas = [] } = usePresencasByChamada(chamadaId);
   const creatingRef = useRef<Promise<string> | null>(null);
 
+  const handleDateChange = (d: string) => {
+    if (!d || d > today) return;
+    selectedDateRef.current = d;
+    setSelectedDate(d);
+    setChamadaId(chamadas.find((c) => c.data === d)?.id ?? null);
+    creatingRef.current = null;
+  };
+
   const ensureChamadaId = async (): Promise<string> => {
     if (chamadaId) return chamadaId;
+    const dateAtCall = selectedDate;
     if (!creatingRef.current) {
-      creatingRef.current = getOrCreate.mutateAsync(today).then((c) => c.id);
+      creatingRef.current = getOrCreate.mutateAsync(dateAtCall).then((c) => c.id);
     }
     const id = await creatingRef.current;
-    setChamadaId(id);
+    // Guarda contra troca de data com criação em voo: só fixa o id no estado
+    // se a data selecionada ainda é a mesma da chamada criada.
+    if (selectedDateRef.current === dateAtCall) setChamadaId(id);
     return id;
   };
 
@@ -59,14 +90,14 @@ export function ChamadaPage() {
     return m;
   }, [presencas]);
 
-  // Last 4 chamadas BEFORE today (older→newer order for display)
+  // Last 4 chamadas BEFORE the selected date (older→newer order for display)
   const last4Chamadas = useMemo(() => {
     return chamadas
-      .filter((c) => c.data < today)
+      .filter((c) => c.data < selectedDate)
       .sort((a, b) => b.data.localeCompare(a.data))
       .slice(0, 4)
       .reverse();
-  }, [chamadas, today]);
+  }, [chamadas, selectedDate]);
 
   // For each pessoa, compute 4-element array of 'P' | 'F' | '-'
   const historicoMap = useMemo(() => {
@@ -130,12 +161,31 @@ export function ChamadaPage() {
 
   return (
     <div className="space-y-4 p-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Chamada</h1>
-        <p className="text-sm text-[var(--color-text-muted)]">
-          {today} · {presentCount} presentes
-        </p>
+      <div className="flex items-end justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold">Chamada</h1>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {selectedDate} · {presentCount} presentes
+          </p>
+        </div>
+        <div>
+          <Label htmlFor="chamada-data">Data</Label>
+          <Input
+            id="chamada-data"
+            type="date"
+            value={selectedDate}
+            max={today}
+            onChange={(e) => handleDateChange(e.target.value)}
+            className="w-40"
+          />
+        </div>
       </div>
+
+      {isRetro && (
+        <div className="rounded-md border border-[var(--color-yellow)] bg-[color-mix(in_srgb,var(--color-yellow)_15%,transparent)] px-3 py-2 text-sm font-medium">
+          ⚠️ Chamada retroativa — {formatDateBanner(selectedDate)}
+        </div>
+      )}
 
       <SearchInput value={search} onChange={setSearch} placeholder="Buscar pessoa..." />
       <FilterPills

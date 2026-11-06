@@ -136,6 +136,10 @@ describe('bootstrapAuth', () => {
     // resolvePapel) e devolve a callback real passada pro onAuthStateChange
     // mockado, pra exercitá-la diretamente — é o único jeito de cobrir o
     // corpo do listener, já que bootstrapAuth nunca a invoca sozinho.
+    // A callback adia o trabalho com setTimeout (fora do lock do auth-js, ver
+    // bootstrap.deadlock.test.ts), então `fire` dispara e espera esse
+    // macrotask: o timer daqui roda depois do timer da callback, e a cadeia
+    // de microtasks dela (resolvePapel/signOut mockados) já drenou até lá.
     async function registerAndCapture() {
       getSessionMock.mockResolvedValue({ data: { session: null } });
       const { bootstrapAuth, useAuth } = await loadBootstrap();
@@ -143,27 +147,31 @@ describe('bootstrapAuth', () => {
       const callback = onAuthStateChangeMock.mock.calls[0]![0] as (
         event: string,
         session: { user: { id: string } } | null,
-      ) => Promise<void>;
-      return { useAuth, callback };
+      ) => void;
+      const fire = async (event: string, session: { user: { id: string } } | null) => {
+        callback(event, session);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      };
+      return { useAuth, fire };
     }
 
     it('sessão null: limpa o estado', async () => {
-      const { useAuth, callback } = await registerAndCapture();
+      const { useAuth, fire } = await registerAndCapture();
       useAuth.getState().setSession(fakeUser('prev'), 'admin');
 
-      await callback('SIGNED_OUT', null);
+      await fire('SIGNED_OUT', null);
 
       expect(useAuth.getState().user).toBeNull();
       expect(useAuth.getState().papel).toBeNull();
     });
 
     it('falha de rede sem cache (fora do boot inicial): mantém a sessão corrente', async () => {
-      const { useAuth, callback } = await registerAndCapture();
+      const { useAuth, fire } = await registerAndCapture();
       const currentUser = fakeUser('u1');
       useAuth.getState().setSession(currentUser, 'operador');
       singleMock.mockRejectedValue(new TypeError('Failed to fetch'));
 
-      await callback('TOKEN_REFRESHED', { user: { id: 'u1' } });
+      await fire('TOKEN_REFRESHED', { user: { id: 'u1' } });
 
       expect(signOutMock).not.toHaveBeenCalled();
       expect(useAuth.getState().user).toEqual(currentUser);
@@ -171,21 +179,21 @@ describe('bootstrapAuth', () => {
     });
 
     it('resposta definitiva ativo:false: signOut + clear', async () => {
-      const { useAuth, callback } = await registerAndCapture();
+      const { useAuth, fire } = await registerAndCapture();
       useAuth.getState().setSession(fakeUser('u1'), 'operador');
       singleMock.mockResolvedValue({ data: { papel: 'operador', ativo: false }, error: null });
 
-      await callback('TOKEN_REFRESHED', { user: { id: 'u1' } });
+      await fire('TOKEN_REFRESHED', { user: { id: 'u1' } });
 
       expect(signOutMock).toHaveBeenCalled();
       expect(useAuth.getState().user).toBeNull();
     });
 
     it('SIGNED_IN (login direto pela LoginPage) com resposta ok: cacheia o termo de consentimento', async () => {
-      const { callback } = await registerAndCapture();
+      const { fire } = await registerAndCapture();
       singleMock.mockResolvedValue({ data: { papel: 'operador', ativo: true }, error: null });
 
-      await callback('SIGNED_IN', { user: { id: 'u1' } });
+      await fire('SIGNED_IN', { user: { id: 'u1' } });
 
       expect(refreshConsentTermCacheMock).toHaveBeenCalled();
     });

@@ -103,22 +103,35 @@ function registerAuthStateListener(): void {
   if (listenerRegistered) return;
   listenerRegistered = true;
 
-  supabase.auth.onAuthStateChange(async (_event, newSession) => {
+  // A callback NÃO pode dar `await` em chamada Supabase: o auth-js a executa
+  // por dentro do próprio lock (ex.: SIGNED_IN emitido pelo initialize() ao
+  // recuperar sessão salva). Uma query ali chama auth.getSession(), que espera
+  // o initialize() terminar, que espera a callback — deadlock, e o app fica
+  // em "Carregando..." em toda aba nova/F5 com sessão salva. O setTimeout
+  // tira o trabalho de dentro do lock (recomendação da doc do supabase-js).
+  supabase.auth.onAuthStateChange((_event, newSession) => {
     if (!newSession) {
       useAuth.getState().clear();
       stopRealtime();
       return;
     }
 
-    const result = await resolvePapel(newSession.user.id);
-    if (result.status === 'ok') {
-      applyOk(newSession.user, result.papel);
-    } else if (result.status === 'invalid') {
-      await applyInvalid();
-    } else {
-      applyOffline(newSession.user, { isInitialBoot: false });
-    }
+    const user = newSession.user;
+    setTimeout(() => {
+      void reactToSession(user);
+    }, 0);
   });
+}
+
+async function reactToSession(user: User): Promise<void> {
+  const result = await resolvePapel(user.id);
+  if (result.status === 'ok') {
+    applyOk(user, result.papel);
+  } else if (result.status === 'invalid') {
+    await applyInvalid();
+  } else {
+    applyOffline(user, { isInitialBoot: false });
+  }
 }
 
 export async function bootstrapAuth(): Promise<void> {
